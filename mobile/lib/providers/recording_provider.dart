@@ -34,7 +34,7 @@ class RecordingProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> processAudio() async {
+  Future<void> processAudio([String? imagePath]) async {
     if (_currentRecordingPath == null) {
       _processingError = 'No recording to process';
       _processingState = ProcessingState.error;
@@ -47,7 +47,7 @@ class RecordingProvider with ChangeNotifier {
       _processingError = null;
       notifyListeners();
 
-      final result = await _audioProcessingService.processAudio(_currentRecordingPath!);
+      final result = await _audioProcessingService.processAudio(_currentRecordingPath!, imagePath);
       
       if (result != null && result['success'] == true) {
         _aiResponse = result['response'] ?? 'No response received';

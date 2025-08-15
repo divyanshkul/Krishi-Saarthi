@@ -13,7 +13,7 @@ class AudioProcessingService {
     receiveTimeout: Duration(milliseconds: ApiConfig.apiTimeout),
   ));
 
-  Future<Map<String, dynamic>?> processAudio(String audioFilePath) async {
+  Future<Map<String, dynamic>?> processAudio(String audioFilePath, [String? imageFilePath]) async {
     try {
       debugPrint('🎵 Processing audio: $audioFilePath');
       
@@ -24,12 +24,26 @@ class AudioProcessingService {
       }
 
       // Create multipart form data
-      final formData = FormData.fromMap({
+      final Map<String, dynamic> formFields = {
         'audio_file': await MultipartFile.fromFile(
           audioFilePath,
           filename: audioFile.path.split('/').last,
         ),
-      });
+      };
+
+      // Add image if provided
+      if (imageFilePath != null) {
+        final imageFile = File(imageFilePath);
+        if (await imageFile.exists()) {
+          debugPrint('📷 Adding image: $imageFilePath');
+          formFields['image_file'] = await MultipartFile.fromFile(
+            imageFilePath,
+            filename: imageFile.path.split('/').last,
+          );
+        }
+      }
+
+      final formData = FormData.fromMap(formFields);
 
       debugPrint('🌐 Uploading to: ${ApiConfig.processAudioEndpoint}');
 

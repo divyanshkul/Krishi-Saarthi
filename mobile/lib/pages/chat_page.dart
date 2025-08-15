@@ -303,37 +303,50 @@ class _ChatPageState extends State<ChatPage> {
 
     debugPrint('🔍 Send button pressed - Text: $hasText, Audio: $hasAudio, Photo: $hasPhoto');
 
-    // Use Case 1: Text Only
-    if (hasText && !hasAudio && !hasPhoto) {
-      debugPrint('📝 Processing text only');
-      await textProvider.processText();
+    // Use Case 1 & 2: Text (with or without audio/photo) - Text takes priority
+    if (hasText) {
+      if (hasPhoto) {
+        debugPrint('📝📷 Processing text + photo (ignoring audio if present)');
+        await textProvider.processText(photoProvider.currentPhotoPath);
+      } else {
+        debugPrint('📝 Processing text only (ignoring audio if present)');
+        await textProvider.processText();
+      }
       
       // Handle result
       if (textProvider.processingState == TextProcessingState.success) {
         debugPrint('✅ Text AI Response: ${textProvider.aiResponse}');
         _textController.clear(); // Clear text field
+        if (hasPhoto) photoProvider.clearPhoto(); // Clear photo attachment
+        if (hasAudio) recordingProvider.clearRecording(); // Clear audio if present
       } else if (textProvider.processingState == TextProcessingState.error && context.mounted) {
         _showError(context, 'Text processing error: ${textProvider.processingError}');
       }
     }
-    // Use Case 2: Text + Photo (to be implemented)
-    else if (hasText && hasPhoto && !hasAudio) {
-      debugPrint('📝📷 Text + Photo processing (to be implemented)');
+    // Use Case 3: Audio + Photo  
+    else if (hasAudio && hasPhoto) {
+      debugPrint('🎵📷 Processing audio + photo');
+      await recordingProvider.processAudio(photoProvider.currentPhotoPath);
+      
+      if (recordingProvider.processingState == ProcessingState.success) {
+        debugPrint('✅ Audio+Photo AI Response: ${recordingProvider.aiResponse}');
+        if (hasText) _textController.clear(); // Clear text if present
+        photoProvider.clearPhoto(); // Clear photo attachment
+      } else if (recordingProvider.processingState == ProcessingState.error && context.mounted) {
+        _showError(context, 'Audio+Photo processing error: ${recordingProvider.processingError}');
+      }
     }
-    // Use Case 3: Audio Only
+    // Use Case 4: Audio Only
     else if (hasAudio && !hasPhoto) {
       debugPrint('🎵 Processing audio only');
       await recordingProvider.processAudio();
       
       if (recordingProvider.processingState == ProcessingState.success) {
         debugPrint('✅ Audio AI Response: ${recordingProvider.aiResponse}');
+        if (hasText) _textController.clear(); // Clear text if present
       } else if (recordingProvider.processingState == ProcessingState.error && context.mounted) {
         _showError(context, 'Audio processing error: ${recordingProvider.processingError}');
       }
-    }
-    // Use Case 4: Audio + Photo (to be implemented)
-    else if (hasAudio && hasPhoto) {
-      debugPrint('🎵📷 Audio + Photo processing (to be implemented)');
     }
     else {
       debugPrint('❌ No content to send');
