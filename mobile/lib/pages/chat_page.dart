@@ -129,12 +129,60 @@ class ChatPage extends StatelessWidget {
               );
             },
           ),
-          CircleAvatar(
-            backgroundColor: Colors.green,
-            child: const Icon(Icons.send, color: Colors.white),
+          Consumer<RecordingProvider>(
+            builder: (context, recordingProvider, child) {
+              return GestureDetector(
+                onTap: () => _handleSend(context, recordingProvider),
+                child: CircleAvatar(
+                  backgroundColor: recordingProvider.isProcessing 
+                      ? Colors.grey 
+                      : Colors.green,
+                  child: recordingProvider.isProcessing
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(Icons.send, color: Colors.white),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
+  }
+
+  void _handleSend(BuildContext context, RecordingProvider recordingProvider) async {
+    // Prevent sending if already processing
+    if (recordingProvider.isProcessing) return;
+
+    // Check if there's a recording to process
+    if (recordingProvider.hasRecording) {
+      // Process audio recording
+      await recordingProvider.processAudio();
+      
+      // Handle the result
+      if (recordingProvider.processingState == ProcessingState.success) {
+        // Add AI response to chat (we'll implement this next)
+        debugPrint('AI Response: ${recordingProvider.aiResponse}');
+      } else if (recordingProvider.processingState == ProcessingState.error) {
+        // Show error message
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${recordingProvider.processingError}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else {
+      // Handle text input (to be implemented later)
+      debugPrint('No recording or text to send');
+    }
   }
 }

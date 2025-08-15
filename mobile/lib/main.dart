@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'pages/chat_page.dart';
 import 'pages/guide_page.dart';
 import 'pages/mandi_page.dart';
@@ -7,8 +8,17 @@ import 'pages/community_page.dart';
 import 'pages/for_you_page.dart';
 import 'providers/language_provider.dart';
 import 'providers/recording_provider.dart';
+import 'config/api_config.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
+  await dotenv.load(fileName: '.env');
+  
+  // Debug config
+  ApiConfig.debugConfig();
+  
   runApp(const MyApp());
 }
 

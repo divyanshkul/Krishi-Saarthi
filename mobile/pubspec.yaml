@@ -39,6 +39,8 @@ dependencies:
   permission_handler: ^12.0.1
   path_provider: ^2.1.5
   youtube_player_flutter: ^9.0.0
+  flutter_dotenv: ^5.1.0
+  dio: ^5.4.0
 
 dev_dependencies:
   flutter_test:
@@ -61,10 +63,9 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  # Environment file
+  assets:
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

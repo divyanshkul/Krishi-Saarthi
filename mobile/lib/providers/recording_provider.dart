@@ -1,11 +1,23 @@
 import 'package:flutter/material.dart';
+import '../services/audio_processing_service.dart';
+
+enum ProcessingState { idle, processing, success, error }
 
 class RecordingProvider with ChangeNotifier {
   String? _currentRecordingPath;
   bool _hasRecording = false;
+  ProcessingState _processingState = ProcessingState.idle;
+  String? _aiResponse;
+  String? _processingError;
+
+  final AudioProcessingService _audioProcessingService = AudioProcessingService();
 
   String? get currentRecordingPath => _currentRecordingPath;
   bool get hasRecording => _hasRecording;
+  ProcessingState get processingState => _processingState;
+  String? get aiResponse => _aiResponse;
+  String? get processingError => _processingError;
+  bool get isProcessing => _processingState == ProcessingState.processing;
 
   void setRecording(String recordingPath) {
     _currentRecordingPath = recordingPath;
@@ -16,6 +28,50 @@ class RecordingProvider with ChangeNotifier {
   void clearRecording() {
     _currentRecordingPath = null;
     _hasRecording = false;
+    _processingState = ProcessingState.idle;
+    _aiResponse = null;
+    _processingError = null;
+    notifyListeners();
+  }
+
+  Future<void> processAudio() async {
+    if (_currentRecordingPath == null) {
+      _processingError = 'No recording to process';
+      _processingState = ProcessingState.error;
+      notifyListeners();
+      return;
+    }
+
+    try {
+      _processingState = ProcessingState.processing;
+      _processingError = null;
+      notifyListeners();
+
+      final result = await _audioProcessingService.processAudio(_currentRecordingPath!);
+      
+      if (result != null && result['success'] == true) {
+        _aiResponse = result['response'] ?? 'No response received';
+        _processingState = ProcessingState.success;
+        
+        // Clear recording after successful processing
+        _currentRecordingPath = null;
+        _hasRecording = false;
+      } else {
+        _processingError = result?['detail'] ?? 'Processing failed';
+        _processingState = ProcessingState.error;
+      }
+    } catch (e) {
+      _processingError = e.toString();
+      _processingState = ProcessingState.error;
+    }
+
+    notifyListeners();
+  }
+
+  void clearProcessing() {
+    _processingState = ProcessingState.idle;
+    _aiResponse = null;
+    _processingError = null;
     notifyListeners();
   }
 
