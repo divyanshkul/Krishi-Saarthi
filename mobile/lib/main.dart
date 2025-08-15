@@ -57,7 +57,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 1; // default to Guide tab like screenshots
+  int _selectedIndex = 0; // default to Chat tab
 
   final List<Widget> _pages = const [
     ChatPage(),

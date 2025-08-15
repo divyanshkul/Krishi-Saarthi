@@ -232,11 +232,16 @@ class _ChatPageState extends State<ChatPage> {
           Consumer3<RecordingProvider, PhotoProvider, TextProvider>(
             builder: (context, recordingProvider, photoProvider, textProvider, child) {
               final bool isProcessing = recordingProvider.isProcessing || textProvider.isProcessing;
+              final bool hasText = textProvider.hasText;
+              final bool hasAudio = recordingProvider.hasRecording;
+              final bool hasPhoto = photoProvider.hasPhoto;
+              final bool isPhotoOnly = hasPhoto && !hasText && !hasAudio;
+              final bool isDisabled = isProcessing || isPhotoOnly;
               
               return GestureDetector(
-                onTap: () => _handleSend(context, recordingProvider, photoProvider, textProvider),
+                onTap: isDisabled ? null : () => _handleSend(context, recordingProvider, photoProvider, textProvider),
                 child: CircleAvatar(
-                  backgroundColor: isProcessing 
+                  backgroundColor: isDisabled 
                       ? Colors.grey 
                       : Colors.green,
                   child: isProcessing
@@ -248,7 +253,10 @@ class _ChatPageState extends State<ChatPage> {
                             strokeWidth: 2,
                           ),
                         )
-                      : const Icon(Icons.send, color: Colors.white),
+                      : Icon(
+                          Icons.send, 
+                          color: isDisabled ? Colors.grey.shade400 : Colors.white,
+                        ),
                 ),
               );
             },
