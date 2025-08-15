@@ -166,7 +166,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-
+# instruction file
+.github/
+.vscode/
 # pytype static type analyzer
 .pytype/
 
