@@ -3,6 +3,7 @@ import 'pages/chat_page.dart';
 import 'pages/guide_page.dart';
 import 'pages/mandi_page.dart';
 import 'pages/community_page.dart';
+import 'pages/for_you_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -40,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     GuidePage(),
     MandiPage(),
     CommunityPage(),
+    ForYouPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -75,6 +77,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.people_outline),
             label: 'Community',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'For You',
           ),
         ],
       ),

@@ -169,6 +169,7 @@ dmypy.json
 # instruction file
 .github/
 .vscode/
+synopsis.md
 # pytype static type analyzer
 .pytype/
 
@@ -228,3 +229,5 @@ app.*.map.json
 mobile/android/app/debug
 mobile/android/app/profile
 mobile/android/app/release
+mobile/lib/widgets/video_carousel.dart
+.gitignore

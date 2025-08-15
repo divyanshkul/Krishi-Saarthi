@@ -28,8 +28,6 @@ class CommunityPage extends StatelessWidget {
                   '5 hours ago - Vidisha',
                   'There was a problem of leaf curl in tomatoes. AI immediately identified it from the photo and suggested medicine. The crop was saved!',
                 ),
-                const SizedBox(height: 12),
-                _buildNewsCard(),
               ],
             ),
           ),
@@ -88,35 +86,6 @@ class CommunityPage extends StatelessWidget {
               SizedBox(width: 8),
               Icon(Icons.share),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNewsCard() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 6)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
-            'Agriculture News',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 8),
-          ListTile(
-            title: Text('5% increase in MSP for Rabi crops'),
-            subtitle: Text('Ministry of Agriculture · 2 hours ago'),
-          ),
-          ListTile(
-            title: Text('Warning of seasonal rain in Madhya Pradesh'),
-            subtitle: Text('Meteorological Department · 4 hours ago'),
           ),
         ],
       ),
