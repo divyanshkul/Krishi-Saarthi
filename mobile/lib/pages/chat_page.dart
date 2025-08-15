@@ -1,12 +1,23 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:krishi_saarthi_mobile/screens/voice_recording_screen.dart';
 import '../widgets/app_header.dart';
 import '../widgets/chat_response.dart';
+import '../widgets/photo_source_dialog.dart';
 import '../providers/recording_provider.dart';
+import '../providers/photo_provider.dart';
+import '../providers/text_provider.dart';
 
-class ChatPage extends StatelessWidget {
+class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
+
+  @override
+  State<ChatPage> createState() => _ChatPageState();
+}
+
+class _ChatPageState extends State<ChatPage> {
+  final TextEditingController _textController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -42,11 +53,12 @@ class ChatPage extends StatelessWidget {
               ],
             ),
           ),
-          Consumer<RecordingProvider>(
-            builder: (context, recordingProvider, child) {
+          Consumer3<RecordingProvider, PhotoProvider, TextProvider>(
+            builder: (context, recordingProvider, photoProvider, textProvider, child) {
               return Column(
                 children: [
                   if (recordingProvider.hasRecording) _buildRecordingAttachment(context, recordingProvider),
+                  if (photoProvider.hasPhoto) _buildPhotoAttachment(context, photoProvider),
                   _buildInputBar(context),
                 ],
               );
@@ -94,6 +106,64 @@ class ChatPage extends StatelessWidget {
     );
   }
 
+  Widget _buildPhotoAttachment(BuildContext context, PhotoProvider photoProvider) {
+    final photoFile = photoProvider.getPhotoFile();
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: photoFile != null && photoFile.existsSync()
+                  ? Image.file(
+                      photoFile,
+                      fit: BoxFit.cover,
+                    )
+                  : Icon(
+                      Icons.image,
+                      color: Colors.blue.shade400,
+                      size: 20,
+                    ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              photoProvider.getPhotoDisplayName() ?? 'Photo attached',
+              style: TextStyle(
+                color: Colors.blue.shade700,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => photoProvider.clearPhoto(),
+            child: Icon(
+              Icons.close,
+              color: Colors.blue.shade600,
+              size: 18,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildInputBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -103,13 +173,43 @@ class ChatPage extends StatelessWidget {
       ),
       child: Row(
         children: [
-          IconButton(onPressed: () {}, icon: const Icon(Icons.camera_alt)),
+          Consumer<PhotoProvider>(
+            builder: (context, photoProvider, child) {
+              return IconButton(
+                onPressed: () => _handleCameraPressed(context),
+                icon: const Icon(Icons.camera_alt),
+                color: photoProvider.hasPhoto ? Colors.blue.shade700 : Colors.grey,
+              );
+            },
+          ),
           Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Ask your question...',
-                border: InputBorder.none,
-              ),
+            child: Consumer3<RecordingProvider, PhotoProvider, TextProvider>(
+              builder: (context, recordingProvider, photoProvider, textProvider, child) {
+                final bool bothAttached = recordingProvider.hasRecording && photoProvider.hasPhoto;
+                
+                return TextField(
+                  controller: _textController,
+                  enabled: !bothAttached,
+                  maxLines: bothAttached ? 2 : 1,
+                  decoration: InputDecoration(
+                    hintText: bothAttached 
+                        ? 'Audio + Photo attached\nTap send to process'
+                        : 'Ask your question...',
+                    hintStyle: TextStyle(
+                      fontSize: bothAttached ? 12 : 14,
+                      color: bothAttached ? Colors.orange.shade600 : Colors.grey.shade600,
+                      fontStyle: bothAttached ? FontStyle.italic : FontStyle.normal,
+                    ),
+                    border: InputBorder.none,
+                  ),
+                  style: TextStyle(
+                    color: bothAttached ? Colors.grey.shade400 : Colors.black,
+                  ),
+                  onChanged: (text) {
+                    textProvider.setText(text);
+                  },
+                );
+              },
             ),
           ),
           const SizedBox(width: 8),
@@ -129,15 +229,17 @@ class ChatPage extends StatelessWidget {
               );
             },
           ),
-          Consumer<RecordingProvider>(
-            builder: (context, recordingProvider, child) {
+          Consumer3<RecordingProvider, PhotoProvider, TextProvider>(
+            builder: (context, recordingProvider, photoProvider, textProvider, child) {
+              final bool isProcessing = recordingProvider.isProcessing || textProvider.isProcessing;
+              
               return GestureDetector(
-                onTap: () => _handleSend(context, recordingProvider),
+                onTap: () => _handleSend(context, recordingProvider, photoProvider, textProvider),
                 child: CircleAvatar(
-                  backgroundColor: recordingProvider.isProcessing 
+                  backgroundColor: isProcessing 
                       ? Colors.grey 
                       : Colors.green,
-                  child: recordingProvider.isProcessing
+                  child: isProcessing
                       ? SizedBox(
                           width: 20,
                           height: 20,
@@ -156,33 +258,103 @@ class ChatPage extends StatelessWidget {
     );
   }
 
-  void _handleSend(BuildContext context, RecordingProvider recordingProvider) async {
-    // Prevent sending if already processing
-    if (recordingProvider.isProcessing) return;
-
-    // Check if there's a recording to process
-    if (recordingProvider.hasRecording) {
-      // Process audio recording
-      await recordingProvider.processAudio();
+  void _handleCameraPressed(BuildContext context) async {
+    final source = await PhotoSourceDialog.show(context);
+    
+    if (source != null && context.mounted) {
+      final photoProvider = Provider.of<PhotoProvider>(context, listen: false);
+      bool success = false;
       
-      // Handle the result
-      if (recordingProvider.processingState == ProcessingState.success) {
-        // Add AI response to chat (we'll implement this next)
-        debugPrint('AI Response: ${recordingProvider.aiResponse}');
-      } else if (recordingProvider.processingState == ProcessingState.error) {
-        // Show error message
+      try {
+        if (source == 'camera') {
+          success = await photoProvider.capturePhoto();
+        } else if (source == 'gallery') {
+          success = await photoProvider.selectFromGallery();
+        }
+        
+        if (!success && context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to select photo'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${recordingProvider.processingError}'),
+              content: Text('Error: $e'),
               backgroundColor: Colors.red,
             ),
           );
         }
       }
-    } else {
-      // Handle text input (to be implemented later)
-      debugPrint('No recording or text to send');
     }
+  }
+
+  void _handleSend(BuildContext context, RecordingProvider recordingProvider, PhotoProvider photoProvider, TextProvider textProvider) async {
+    // Prevent sending if already processing
+    if (recordingProvider.isProcessing || textProvider.isProcessing) return;
+
+    final bool hasText = textProvider.hasText;
+    final bool hasAudio = recordingProvider.hasRecording;
+    final bool hasPhoto = photoProvider.hasPhoto;
+
+    debugPrint('🔍 Send button pressed - Text: $hasText, Audio: $hasAudio, Photo: $hasPhoto');
+
+    // Use Case 1: Text Only
+    if (hasText && !hasAudio && !hasPhoto) {
+      debugPrint('📝 Processing text only');
+      await textProvider.processText();
+      
+      // Handle result
+      if (textProvider.processingState == TextProcessingState.success) {
+        debugPrint('✅ Text AI Response: ${textProvider.aiResponse}');
+        _textController.clear(); // Clear text field
+      } else if (textProvider.processingState == TextProcessingState.error && context.mounted) {
+        _showError(context, 'Text processing error: ${textProvider.processingError}');
+      }
+    }
+    // Use Case 2: Text + Photo (to be implemented)
+    else if (hasText && hasPhoto && !hasAudio) {
+      debugPrint('📝📷 Text + Photo processing (to be implemented)');
+    }
+    // Use Case 3: Audio Only
+    else if (hasAudio && !hasPhoto) {
+      debugPrint('🎵 Processing audio only');
+      await recordingProvider.processAudio();
+      
+      if (recordingProvider.processingState == ProcessingState.success) {
+        debugPrint('✅ Audio AI Response: ${recordingProvider.aiResponse}');
+      } else if (recordingProvider.processingState == ProcessingState.error && context.mounted) {
+        _showError(context, 'Audio processing error: ${recordingProvider.processingError}');
+      }
+    }
+    // Use Case 4: Audio + Photo (to be implemented)
+    else if (hasAudio && hasPhoto) {
+      debugPrint('🎵📷 Audio + Photo processing (to be implemented)');
+    }
+    else {
+      debugPrint('❌ No content to send');
+      _showError(context, 'Please enter text, record audio, or attach a photo');
+    }
+  }
+
+  void _showError(BuildContext context, String message) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 }

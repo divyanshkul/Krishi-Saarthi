@@ -41,6 +41,8 @@ dependencies:
   youtube_player_flutter: ^9.0.0
   flutter_dotenv: ^5.1.0
   dio: ^5.4.0
+  image_picker: ^1.0.4
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:

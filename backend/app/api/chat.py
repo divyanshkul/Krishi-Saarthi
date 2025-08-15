@@ -1,11 +1,11 @@
 import os
-import logging
 from datetime import datetime
 from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 from typing import Optional
 import shutil
+from app.utils.logger import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(
     prefix="/chat",
@@ -33,11 +33,13 @@ async def upload_recording(audio_file: UploadFile = File(...)):
             shutil.copyfileobj(audio_file.file, buffer)
         
         logger.info(f"Successfully saved file: {new_filename}")
-        return {
+        response = {
             "success": True,
             "filename": new_filename,
             "message": "Recording uploaded successfully"
         }
+        logger.debug(f"Returning response: {response}")
+        return response
     except Exception as e:
         logger.error(f"Error saving file {audio_file.filename}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error saving file: {str(e)}")
@@ -61,35 +63,43 @@ async def _save_file(file: UploadFile, file_type: str) -> str:
 
 async def _handle_audio_only(audio_filename: str) -> dict:
     logger.info(f"Executing audio-only workflow for file: {audio_filename}")
-    return {
+    result = {
         "workflow_type": "audio_only",
         "response": "Processing audio-only request - placeholder response",
         "analysis": "Audio transcription and agricultural analysis would go here"
     }
+    logger.debug(f"Audio-only workflow result: {result}")
+    return result
 
 async def _handle_audio_with_image(audio_filename: str, image_filename: str) -> dict:
     logger.info(f"Executing audio+image workflow - Audio: {audio_filename}, Image: {image_filename}")
-    return {
+    result = {
         "workflow_type": "audio_with_image", 
         "response": "Processing audio with image - placeholder response",
         "analysis": "Combined audio transcription and image analysis for agricultural diagnosis"
     }
+    logger.debug(f"Audio+image workflow result: {result}")
+    return result
 
 async def _handle_text_only(text: str) -> dict:
     logger.info(f"Executing text-only workflow for query: '{text[:50]}...'")
-    return {
+    result = {
         "workflow_type": "text_only",
         "response": f"Processing text query: '{text}' - placeholder response",
         "analysis": "Text-based agricultural query processing would go here"
     }
+    logger.debug(f"Text-only workflow result: {result}")
+    return result
 
 async def _handle_text_with_image(text: str, image_filename: str) -> dict:
     logger.info(f"Executing text+image workflow - Text: '{text[:50]}...', Image: {image_filename}")
-    return {
+    result = {
         "workflow_type": "text_with_image",
         "response": f"Processing text '{text}' with image - placeholder response", 
         "analysis": "Combined text query and image analysis for agricultural guidance"
     }
+    logger.debug(f"Text+image workflow result: {result}")
+    return result
 
 @router.post("/process-audio")
 async def process_audio(
@@ -119,11 +129,13 @@ async def process_audio(
             workflow_result = await _handle_audio_only(audio_filename)
         
         logger.info(f"Audio processing completed successfully")
-        return {
+        response = {
             "success": True,
             "processed_files": processed_files,
             **workflow_result
         }
+        logger.debug(f"Returning response: {response}")
+        return response
     
     except Exception as e:
         logger.error(f"Error processing audio request: {str(e)}")
@@ -152,11 +164,13 @@ async def process_text(
             workflow_result = await _handle_text_only(text)
         
         logger.info(f"Text processing completed successfully")
-        return {
+        response = {
             "success": True,
             "processed_files": processed_files,
             **workflow_result
         }
+        logger.debug(f"Returning response: {response}")
+        return response
     
     except Exception as e:
         logger.error(f"Error processing text request: {str(e)}")

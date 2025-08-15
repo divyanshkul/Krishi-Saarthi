@@ -8,6 +8,8 @@ import 'pages/community_page.dart';
 import 'pages/for_you_page.dart';
 import 'providers/language_provider.dart';
 import 'providers/recording_provider.dart';
+import 'providers/photo_provider.dart';
+import 'providers/text_provider.dart';
 import 'config/api_config.dart';
 
 void main() async {
@@ -31,6 +33,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
         ChangeNotifierProvider(create: (_) => RecordingProvider()),
+        ChangeNotifierProvider(create: (_) => PhotoProvider()),
+        ChangeNotifierProvider(create: (_) => TextProvider()),
       ],
       child: MaterialApp(
         title: 'Krishi Saarthi',
