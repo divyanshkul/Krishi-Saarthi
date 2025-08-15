@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'pages/chat_page.dart';
 import 'pages/guide_page.dart';
 import 'pages/mandi_page.dart';
 import 'pages/community_page.dart';
 import 'pages/for_you_page.dart';
+import 'providers/language_provider.dart';
+import 'providers/recording_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,14 +17,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Krishi Saarthi',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-        scaffoldBackgroundColor: Colors.white,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => RecordingProvider()),
+      ],
+      child: MaterialApp(
+        title: 'Krishi Saarthi',
+        theme: ThemeData(
+          primarySwatch: Colors.green,
+          scaffoldBackgroundColor: Colors.white,
+        ),
+        home: const HomeScreen(),
+        debugShowCheckedModeBanner: false,
       ),
-      home: const HomeScreen(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }

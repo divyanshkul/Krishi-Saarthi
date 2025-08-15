@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../widgets/particle_animation_widget.dart';
 import '../services/audio_recording_service.dart';
+import '../providers/recording_provider.dart';
 
 class VoiceRecordingScreen extends StatefulWidget {
   const VoiceRecordingScreen({super.key});
@@ -147,39 +149,44 @@ class _VoiceRecordingScreenState extends State<VoiceRecordingScreen> {
     );
   }
 
-  Future<void> _showSavePath() async {
-    final recordings = await _audioService.getAllRecordings();
-    if (recordings.isNotEmpty) {
-      print('📁 Recording saved at: ${recordings.first}');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Path: ${recordings.first}')));
-    }
-  }
 
   Future<void> _toggleRecording() async {
     if (_isRecording) {
       // Stop recording
       final String? savedPath = await _audioService.stopRecording();
 
-      setState(() {
-        _isRecording = false;
-        if (savedPath != null) {
-          _statusText = "Recording saved!";
-          print('📁 Recording saved at: $savedPath');
-        } else {
-          _statusText = "Failed to save recording";
-        }
-      });
-
-      // Reset status text after 2 seconds
-      Future.delayed(const Duration(seconds: 2), () {
+      if (savedPath != null) {
+        // Save recording to provider
         if (mounted) {
-          setState(() {
-            _statusText = "Say something...";
-          });
+          context.read<RecordingProvider>().setRecording(savedPath);
         }
-      });
+        
+        setState(() {
+          _isRecording = false;
+          _statusText = "Recording saved!";
+        });
+
+        // Auto-navigate back after brief success message
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            Navigator.pop(context);
+          }
+        });
+      } else {
+        setState(() {
+          _isRecording = false;
+          _statusText = "Failed to save recording";
+        });
+
+        // Reset status text after 3 seconds
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              _statusText = "Say something...";
+            });
+          }
+        });
+      }
     } else {
       // Start recording
       final bool started = await _audioService.startRecording();

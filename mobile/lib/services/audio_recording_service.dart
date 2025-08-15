@@ -41,8 +41,9 @@ class AudioRecordingService {
 
       // Save to public Downloads folder so it's accessible via Files app
       final Directory downloadsDir = Directory('/storage/emulated/0/Download');
-      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
-      final String fileName = 'recording_$timestamp.wav';
+      final DateTime now = DateTime.now();
+      final String dateTime = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}-${now.minute.toString().padLeft(2, '0')}-${now.second.toString().padLeft(2, '0')}';
+      final String fileName = 'recording_$dateTime.wav';
       final String filePath = '${downloadsDir.path}/$fileName';
 
       const config = RecordConfig(
