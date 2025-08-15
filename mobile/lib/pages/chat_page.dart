@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:krishi_saarthi_mobile/screens/voice_recording_screen.dart';
 import '../widgets/app_header.dart';
 import '../widgets/chat_response.dart';
 
@@ -39,14 +40,14 @@ class ChatPage extends StatelessWidget {
               ],
             ),
           ),
-          _buildInputBar(),
+          _buildInputBar(context),
         ],
       ),
     );
   }
   // Weather is shown in the shared AppHeader; detailed suggestion is now a ChatResponseCard.
 
-  Widget _buildInputBar() {
+  Widget _buildInputBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -65,14 +66,21 @@ class ChatPage extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const VoiceRecordingScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.mic),
+            color: Colors.green,
+          ),
           CircleAvatar(
             backgroundColor: Colors.green,
             child: const Icon(Icons.send, color: Colors.white),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.mic),
-            color: Colors.green,
           ),
         ],
       ),
