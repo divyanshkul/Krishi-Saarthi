@@ -61,11 +61,11 @@ class ChatResponseCard extends StatelessWidget {
             Text(text),
             if (_hasActions) ...[
               const SizedBox(height: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
                 children: [
                   if (_hasVideo) _buildVideoButton(context),
-                  if (_hasVideo && _hasWebsite) const SizedBox(height: 8),
                   if (_hasWebsite) _buildWebsiteButton(),
                 ],
               ),
@@ -77,25 +77,50 @@ class ChatResponseCard extends StatelessWidget {
   }
 
   Widget _buildVideoButton(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: () => _onVideoTap(context),
-      icon: const Icon(Icons.play_circle),
-      label: Text(videoTitle ?? 'Watch Video'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.green.shade700,
-        foregroundColor: Colors.white,
+    return Container(
+      constraints: const BoxConstraints(minWidth: 140, maxWidth: 200),
+      child: ElevatedButton.icon(
+        onPressed: () => _onVideoTap(context),
+        icon: const Icon(Icons.play_circle, size: 18),
+        label: Text(
+          videoTitle ?? 'Watch Video',
+          style: const TextStyle(fontSize: 13),
+          overflow: TextOverflow.ellipsis,
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green.shade700,
+          foregroundColor: Colors.white,
+          elevation: 2,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          minimumSize: const Size(0, 36),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildWebsiteButton() {
-    return OutlinedButton.icon(
-      onPressed: _onWebsiteTap,
-      icon: const Icon(Icons.language),
-      label: Text(websiteTitle ?? 'View Website'),
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: Colors.green.shade700),
-        foregroundColor: Colors.green.shade700,
+    return Container(
+      constraints: const BoxConstraints(minWidth: 140, maxWidth: 200),
+      child: OutlinedButton.icon(
+        onPressed: _onWebsiteTap,
+        icon: const Icon(Icons.language, size: 18),
+        label: Text(
+          websiteTitle ?? 'View Website',
+          style: const TextStyle(fontSize: 13),
+          overflow: TextOverflow.ellipsis,
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: Colors.green.shade700, width: 1.5),
+          foregroundColor: Colors.green.shade700,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          minimumSize: const Size(0, 36),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+        ),
       ),
     );
   }
