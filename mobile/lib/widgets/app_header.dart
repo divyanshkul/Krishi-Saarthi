@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
+import '../utils/translation_helper.dart';
+import 'animated_language_toggle.dart';
 
 class AppHeader extends StatelessWidget {
   const AppHeader({super.key});
@@ -20,13 +24,17 @@ class AppHeader extends StatelessWidget {
             children: [
               const Icon(Icons.emoji_nature, color: Colors.white),
               const SizedBox(width: 8),
-              const Text(
-                'Krishi Saarthi',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
+              Consumer<LanguageProvider>(
+                builder: (context, languageProvider, child) {
+                  return Text(
+                    languageProvider.translate('appTitle'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                },
               ),
               const SizedBox(width: 6),
               // green status dot
@@ -39,22 +47,8 @@ class AppHeader extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // language pill
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(31),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: const Text(
-                  'हिं/EN',
-                  style: TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ),
+              // animated language toggle
+              const AnimatedLanguageToggle(),
             ],
           ),
           const SizedBox(height: 12),
@@ -83,8 +77,8 @@ class AppHeader extends StatelessWidget {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
+                    children: [
+                      const Text(
                         '32°C',
                         style: TextStyle(
                           color: Colors.white,
@@ -92,10 +86,14 @@ class AppHeader extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Bhopal · Clear Weather',
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                      const SizedBox(height: 4),
+                      Consumer<LanguageProvider>(
+                        builder: (context, languageProvider, child) {
+                          return Text(
+                            languageProvider.translate('bhopalClearWeather'),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -103,15 +101,23 @@ class AppHeader extends StatelessWidget {
                 // right: humidity and rain
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  children: const [
-                    Text(
-                      'Humidity: 65%',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                  children: [
+                    Consumer<LanguageProvider>(
+                      builder: (context, languageProvider, child) {
+                        return Text(
+                          languageProvider.translate('humidity'),
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        );
+                      },
                     ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Rain: 20%',
-                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    const SizedBox(height: 6),
+                    Consumer<LanguageProvider>(
+                      builder: (context, languageProvider, child) {
+                        return Text(
+                          languageProvider.translate('rain'),
+                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                        );
+                      },
                     ),
                   ],
                 ),

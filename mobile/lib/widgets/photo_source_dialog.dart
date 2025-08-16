@@ -1,68 +1,77 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
 
 class PhotoSourceDialog extends StatelessWidget {
   const PhotoSourceDialog({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text(
-        'Select Photo Source',
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Choose how you want to add a photo:',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return AlertDialog(
+          title: Text(
+            languageProvider.translate('selectPhotoSource'),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-          const SizedBox(height: 20),
-          Row(
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(
-                child: _buildSourceOption(
-                  context,
-                  icon: Icons.camera_alt,
-                  title: 'Camera',
-                  subtitle: 'Take a new photo',
-                  onTap: () => Navigator.of(context).pop('camera'),
-                ),
+              Text(
+                languageProvider.translate('choosePhotoMethod'),
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSourceOption(
-                  context,
-                  icon: Icons.photo_library,
-                  title: 'Gallery',
-                  subtitle: 'Choose from gallery',
-                  onTap: () => Navigator.of(context).pop('gallery'),
-                ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSourceOption(
+                      context,
+                      languageProvider,
+                      icon: Icons.camera_alt,
+                      titleKey: 'camera',
+                      subtitleKey: 'takeNewPhoto',
+                      onTap: () => Navigator.of(context).pop('camera'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSourceOption(
+                      context,
+                      languageProvider,
+                      icon: Icons.photo_library,
+                      titleKey: 'gallery',
+                      subtitleKey: 'chooseFromGallery',
+                      onTap: () => Navigator.of(context).pop('gallery'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(
-            'Cancel',
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
-        ),
-      ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                languageProvider.translate('cancel'),
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
   Widget _buildSourceOption(
-    BuildContext context, {
+    BuildContext context,
+    LanguageProvider languageProvider, {
     required IconData icon,
-    required String title,
-    required String subtitle,
+    required String titleKey,
+    required String subtitleKey,
     required VoidCallback onTap,
   }) {
     return InkWell(
@@ -90,7 +99,7 @@ class PhotoSourceDialog extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              title,
+              languageProvider.translate(titleKey),
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -98,7 +107,7 @@ class PhotoSourceDialog extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              subtitle,
+              languageProvider.translate(subtitleKey),
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey.shade600,

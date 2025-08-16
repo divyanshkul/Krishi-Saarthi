@@ -8,6 +8,7 @@ import '../widgets/photo_source_dialog.dart';
 import '../providers/recording_provider.dart';
 import '../providers/photo_provider.dart';
 import '../providers/text_provider.dart';
+import '../providers/language_provider.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -183,8 +184,8 @@ class _ChatPageState extends State<ChatPage> {
             },
           ),
           Expanded(
-            child: Consumer3<RecordingProvider, PhotoProvider, TextProvider>(
-              builder: (context, recordingProvider, photoProvider, textProvider, child) {
+            child: Consumer4<RecordingProvider, PhotoProvider, TextProvider, LanguageProvider>(
+              builder: (context, recordingProvider, photoProvider, textProvider, languageProvider, child) {
                 final bool bothAttached = recordingProvider.hasRecording && photoProvider.hasPhoto;
                 
                 return TextField(
@@ -194,7 +195,7 @@ class _ChatPageState extends State<ChatPage> {
                   decoration: InputDecoration(
                     hintText: bothAttached 
                         ? 'Audio + Photo attached\nTap send to process'
-                        : 'Ask your question...',
+                        : languageProvider.translate('askYourQuestion'),
                     hintStyle: TextStyle(
                       fontSize: bothAttached ? 12 : 14,
                       color: bothAttached ? Colors.orange.shade600 : Colors.grey.shade600,

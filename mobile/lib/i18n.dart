@@ -46,6 +46,29 @@ const Map<String, Map<String, String>> translations = {
     'agriNews': 'Agricultural News',
     'mspHike': '5% hike in MSP for Rabi crops',
     'weatherWarning': 'Weather warning for unseasonal rains in Madhya Pradesh',
+    
+    // Photo and UI strings
+    'selectPhotoSource': 'Select Photo Source',
+    'choosePhotoMethod': 'Choose how you want to add a photo:',
+    'camera': 'Camera',
+    'takeNewPhoto': 'Take a new photo',
+    'gallery': 'Gallery',
+    'chooseFromGallery': 'Choose from gallery',
+    'cancel': 'Cancel',
+    'justTaken': 'Just taken',
+    'photoAttached': 'Photo attached',
+    
+    // Location and weather
+    'bhopalClearWeather': 'Bhopal · Clear Weather',
+    'humidity': 'Humidity: 65%',
+    'rain': 'Rain: 20%',
+    
+    // Video recommendations
+    'videoRecommendations': 'Video Recommendations',
+    
+    // Government schemes (updates)
+    'pmKisanEligible': 'You are eligible · Next installment: 15th August',
+    'cropInsuranceDeadline': 'Application deadline: 30th November',
   },
   'hi': {
     'appTitle': 'कृषि सारथी',
@@ -94,5 +117,28 @@ const Map<String, Map<String, String>> translations = {
     'agriNews': 'कृषि समाचार',
     'mspHike': 'रबी की फसल के लिए MSP में 5% वृद्धि',
     'weatherWarning': 'मध्य प्रदेश में बेमौसम बारिश की चेतावनी',
+    
+    // Photo and UI strings
+    'selectPhotoSource': 'फोटो स्रोत चुनें',
+    'choosePhotoMethod': 'आप फोटो कैसे जोड़ना चाहते हैं:',
+    'camera': 'कैमरा',
+    'takeNewPhoto': 'नई फोटो लें',
+    'gallery': 'गैलरी',
+    'chooseFromGallery': 'गैलरी से चुनें',
+    'cancel': 'रद्द करें',
+    'justTaken': 'अभी खींची',
+    'photoAttached': 'फोटो जोड़ी गई',
+    
+    // Location and weather
+    'bhopalClearWeather': 'भोपाल · साफ मौसम',
+    'humidity': 'नमी: 65%',
+    'rain': 'बारिश: 20%',
+    
+    // Video recommendations
+    'videoRecommendations': 'वीडियो सुझाव',
+    
+    // Government schemes (updates)
+    'pmKisanEligible': 'आप पात्र हैं · अगली किस्त: 15 अगस्त',
+    'cropInsuranceDeadline': 'आवेदन की अंतिम तिथि: 30 नवंबर',
   },
 };
