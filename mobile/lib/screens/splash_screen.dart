@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'home_screen.dart';
+import 'registration_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -120,11 +120,13 @@ class _SplashScreenState extends State<SplashScreen>
                 onPressed: () {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const RegistrationScreen(),
+                    ),
                   );
                 },
                 child: const Text(
-                  'Get Started',
+                  'Register Now',
                   style: TextStyle(fontSize: 20, color: Color(0xFFFFB823)),
                 ),
               ),
