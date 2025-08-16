@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:krishi_saarthi_mobile/screens/voice_recording_screen.dart';
@@ -9,6 +8,8 @@ import '../providers/recording_provider.dart';
 import '../providers/photo_provider.dart';
 import '../providers/text_provider.dart';
 import '../providers/language_provider.dart';
+import '../models/chat_message.dart';
+import '../models/chat_response_model.dart';
 
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
@@ -19,6 +20,47 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final TextEditingController _textController = TextEditingController();
+  final List<ChatMessage> _chatHistory = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _addWelcomeMessage();
+  }
+
+  void _addWelcomeMessage() {
+    final welcomeResponse = ChatResponseModel(
+      text: 'Hello! I am your Krishi Saarthi. I can help you with farming questions, crop diseases, market prices, and government schemes. You can send me text, voice messages, or photos for analysis.',
+    );
+    _chatHistory.add(ChatMessage.ai(welcomeResponse));
+  }
+
+  Widget _buildChatList() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: _chatHistory.length,
+      itemBuilder: (context, index) {
+        final message = _chatHistory[index];
+        
+        if (message.isUser) {
+          return ChatResponseCard(
+            isUser: true,
+            text: message.text,
+          );
+        } else {
+          final aiResponse = message.aiResponse!;
+          return ChatResponseCard(
+            isUser: false,
+            text: aiResponse.text,
+            videoUrl: aiResponse.videoUrl,
+            videoTitle: aiResponse.videoTitle,
+            websiteUrl: aiResponse.websiteUrl,
+            websiteTitle: aiResponse.websiteTitle,
+          );
+        }
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,32 +69,7 @@ class _ChatPageState extends State<ChatPage> {
         children: [
           const AppHeader(),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(12),
-              children: [
-                const ChatResponseCard(
-                  isUser: false,
-                  text: 'Hello! I am your Krishi Saarthi.',
-                  aiTitle: null,
-                ),
-                const ChatResponseCard(
-                  isUser: true,
-                  text: 'I am seeing yellow leaves in my wheat crop',
-                ),
-                const ChatResponseCard(
-                  isUser: false,
-                  text:
-                      'Yellow leaves can be due to nitrogen deficiency. I am looking for a solution for you...',
-                  aiTitle: 'AI Analysis (95% confidence):',
-                  aiBullets: [
-                    'Urea: 10 kg/acre',
-                    'Spray with water',
-                    'Improvement will be visible in 7 days',
-                  ],
-                  showActions: true,
-                ),
-              ],
-            ),
+            child: _buildChatList(),
           ),
           Consumer3<RecordingProvider, PhotoProvider, TextProvider>(
             builder: (context, recordingProvider, photoProvider, textProvider, child) {
@@ -314,6 +331,11 @@ class _ChatPageState extends State<ChatPage> {
 
     // Use Case 1 & 2: Text (with or without audio/photo) - Text takes priority
     if (hasText) {
+      // Add user message to chat
+      setState(() {
+        _chatHistory.add(ChatMessage.user(_textController.text));
+      });
+      
       if (hasPhoto) {
         debugPrint('📝📷 Processing text + photo (ignoring audio if present)');
         await textProvider.processText(photoProvider.currentPhotoPath);
@@ -323,8 +345,11 @@ class _ChatPageState extends State<ChatPage> {
       }
       
       // Handle result
-      if (textProvider.processingState == TextProcessingState.success) {
-        debugPrint('✅ Text AI Response: ${textProvider.aiResponse}');
+      if (textProvider.processingState == TextProcessingState.success && textProvider.lastResponse != null) {
+        debugPrint('✅ Text AI Response: ${textProvider.lastResponse!.text}');
+        setState(() {
+          _chatHistory.add(ChatMessage.ai(textProvider.lastResponse!));
+        });
         _textController.clear(); // Clear text field
         if (hasPhoto) photoProvider.clearPhoto(); // Clear photo attachment
         if (hasAudio) recordingProvider.clearRecording(); // Clear audio if present
@@ -334,11 +359,19 @@ class _ChatPageState extends State<ChatPage> {
     }
     // Use Case 3: Audio + Photo  
     else if (hasAudio && hasPhoto) {
+      // Add placeholder for audio input (will be replaced by AI response)
+      setState(() {
+        _chatHistory.add(ChatMessage.user("Audio message with photo"));
+      });
+      
       debugPrint('🎵📷 Processing audio + photo');
       await recordingProvider.processAudio(photoProvider.currentPhotoPath);
       
-      if (recordingProvider.processingState == ProcessingState.success) {
-        debugPrint('✅ Audio+Photo AI Response: ${recordingProvider.aiResponse}');
+      if (recordingProvider.processingState == ProcessingState.success && recordingProvider.lastResponse != null) {
+        debugPrint('✅ Audio+Photo AI Response: ${recordingProvider.lastResponse!.text}');
+        setState(() {
+          _chatHistory.add(ChatMessage.ai(recordingProvider.lastResponse!));
+        });
         if (hasText) _textController.clear(); // Clear text if present
         photoProvider.clearPhoto(); // Clear photo attachment
       } else if (recordingProvider.processingState == ProcessingState.error && context.mounted) {
@@ -347,11 +380,19 @@ class _ChatPageState extends State<ChatPage> {
     }
     // Use Case 4: Audio Only
     else if (hasAudio && !hasPhoto) {
+      // Add placeholder for audio input (will be replaced by AI response)
+      setState(() {
+        _chatHistory.add(ChatMessage.user("Audio message"));
+      });
+      
       debugPrint('🎵 Processing audio only');
       await recordingProvider.processAudio();
       
-      if (recordingProvider.processingState == ProcessingState.success) {
-        debugPrint('✅ Audio AI Response: ${recordingProvider.aiResponse}');
+      if (recordingProvider.processingState == ProcessingState.success && recordingProvider.lastResponse != null) {
+        debugPrint('✅ Audio AI Response: ${recordingProvider.lastResponse!.text}');
+        setState(() {
+          _chatHistory.add(ChatMessage.ai(recordingProvider.lastResponse!));
+        });
         if (hasText) _textController.clear(); // Clear text if present
       } else if (recordingProvider.processingState == ProcessingState.error && context.mounted) {
         _showError(context, 'Audio processing error: ${recordingProvider.processingError}');

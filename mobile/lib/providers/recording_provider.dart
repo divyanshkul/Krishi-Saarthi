@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/audio_processing_service.dart';
+import '../models/chat_response_model.dart';
 
 enum ProcessingState { idle, processing, success, error }
 
@@ -7,7 +8,7 @@ class RecordingProvider with ChangeNotifier {
   String? _currentRecordingPath;
   bool _hasRecording = false;
   ProcessingState _processingState = ProcessingState.idle;
-  String? _aiResponse;
+  ChatResponseModel? _lastResponse;
   String? _processingError;
 
   final AudioProcessingService _audioProcessingService = AudioProcessingService();
@@ -15,7 +16,7 @@ class RecordingProvider with ChangeNotifier {
   String? get currentRecordingPath => _currentRecordingPath;
   bool get hasRecording => _hasRecording;
   ProcessingState get processingState => _processingState;
-  String? get aiResponse => _aiResponse;
+  ChatResponseModel? get lastResponse => _lastResponse;
   String? get processingError => _processingError;
   bool get isProcessing => _processingState == ProcessingState.processing;
 
@@ -29,7 +30,7 @@ class RecordingProvider with ChangeNotifier {
     _currentRecordingPath = null;
     _hasRecording = false;
     _processingState = ProcessingState.idle;
-    _aiResponse = null;
+    _lastResponse = null;
     _processingError = null;
     notifyListeners();
   }
@@ -49,8 +50,8 @@ class RecordingProvider with ChangeNotifier {
 
       final result = await _audioProcessingService.processAudio(_currentRecordingPath!, imagePath);
       
-      if (result != null && result['success'] == true) {
-        _aiResponse = result['response'] ?? 'No response received';
+      if (result != null && result['success'] == true && result['response'] != null) {
+        _lastResponse = ChatResponseModel.fromJson(result['response']);
         _processingState = ProcessingState.success;
         
         // Clear recording after successful processing
@@ -70,7 +71,7 @@ class RecordingProvider with ChangeNotifier {
 
   void clearProcessing() {
     _processingState = ProcessingState.idle;
-    _aiResponse = null;
+    _lastResponse = null;
     _processingError = null;
     notifyListeners();
   }

@@ -1,39 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'video_player_modal.dart';
 
 class ChatResponseCard extends StatelessWidget {
   final bool isUser;
   final String text;
-  final String? aiTitle;
-  final List<String>? aiBullets;
-  final bool showActions;
+  final String? videoUrl;
+  final String? videoTitle;
+  final String? websiteUrl;
+  final String? websiteTitle;
 
   const ChatResponseCard({
     super.key,
     this.isUser = false,
     required this.text,
-    this.aiTitle,
-    this.aiBullets,
-    this.showActions = false,
+    this.videoUrl,
+    this.videoTitle,
+    this.websiteUrl,
+    this.websiteTitle,
   });
 
   @override
   Widget build(BuildContext context) {
     if (isUser) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.green.shade700,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(text, style: const TextStyle(color: Colors.white)),
-        ),
-      );
+      return _buildUserMessage();
     }
+    return _buildAIMessage(context);
+  }
 
-    // AI response card
+  Widget _buildUserMessage() {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.green.shade700,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(text, style: const TextStyle(color: Colors.white)),
+      ),
+    );
+  }
+
+  Widget _buildAIMessage(BuildContext context) {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
@@ -49,51 +59,14 @@ class ChatResponseCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(text),
-            if (aiTitle != null ||
-                (aiBullets != null && aiBullets!.isNotEmpty)) ...[
-              const SizedBox(height: 8),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (aiTitle != null)
-                      Text(
-                        aiTitle!,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    if (aiBullets != null)
-                      ...aiBullets!.map(
-                        (b) => Padding(
-                          padding: const EdgeInsets.only(top: 6),
-                          child: Text(b),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-            if (showActions) ...[
-              const SizedBox(height: 8),
+            if (_hasActions) ...[
+              const SizedBox(height: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ElevatedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.play_circle),
-                    label: const Text('Watch Video'),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: () {},
-                    icon: const Icon(Icons.phone),
-                    label: const Text('Call Expert'),
-                  ),
+                  if (_hasVideo) _buildVideoButton(context),
+                  if (_hasVideo && _hasWebsite) const SizedBox(height: 8),
+                  if (_hasWebsite) _buildWebsiteButton(),
                 ],
               ),
             ],
@@ -101,5 +74,48 @@ class ChatResponseCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildVideoButton(BuildContext context) {
+    return ElevatedButton.icon(
+      onPressed: () => _onVideoTap(context),
+      icon: const Icon(Icons.play_circle),
+      label: Text(videoTitle ?? 'Watch Video'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.green.shade700,
+        foregroundColor: Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildWebsiteButton() {
+    return OutlinedButton.icon(
+      onPressed: _onWebsiteTap,
+      icon: const Icon(Icons.language),
+      label: Text(websiteTitle ?? 'View Website'),
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: Colors.green.shade700),
+        foregroundColor: Colors.green.shade700,
+      ),
+    );
+  }
+
+  bool get _hasVideo => videoUrl != null && videoUrl!.isNotEmpty;
+  bool get _hasWebsite => websiteUrl != null && websiteUrl!.isNotEmpty;
+  bool get _hasActions => _hasVideo || _hasWebsite;
+
+  void _onVideoTap(BuildContext context) {
+    if (_hasVideo) {
+      VideoPlayerModal.show(context, videoUrl!, videoTitle);
+    }
+  }
+
+  void _onWebsiteTap() async {
+    if (_hasWebsite) {
+      final uri = Uri.parse(websiteUrl!);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    }
   }
 }
