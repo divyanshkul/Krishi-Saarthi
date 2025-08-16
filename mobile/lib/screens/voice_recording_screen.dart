@@ -13,11 +13,12 @@ class VoiceRecordingScreen extends StatefulWidget {
 
 class _VoiceRecordingScreenState extends State<VoiceRecordingScreen> {
   final AudioRecordingService _audioService = AudioRecordingService();
-  bool _isRecording = false;
-  String _statusText = "Say something...";
 
   @override
   Widget build(BuildContext context) {
+    final recordingProvider = context.watch<RecordingProvider>();
+    final isRecording = recordingProvider.isRecording;
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       body: SafeArea(
@@ -58,9 +59,18 @@ class _VoiceRecordingScreenState extends State<VoiceRecordingScreen> {
                       alignment: Alignment.center,
                       children: [
                         // Particle animation
-                        const ParticleAnimationWidget(
-                          radius: 150,
-                          particleCount: 350,
+                        TweenAnimationBuilder<double>(
+                          tween: Tween<double>(
+                            end: isRecording ? 160.0 : 120.0,
+                          ),
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeInOut,
+                          builder: (context, radius, child) {
+                            return ParticleAnimationWidget(
+                              radius: radius,
+                              particleCount: 350,
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -72,10 +82,10 @@ class _VoiceRecordingScreenState extends State<VoiceRecordingScreen> {
                   Column(
                     children: [
                       // Status text above button
-                      if (!_isRecording)
-                        Text(
-                          _statusText,
-                          style: const TextStyle(
+                      if (!isRecording)
+                        const Text(
+                          "Say something...",
+                          style: TextStyle(
                             fontSize: 18,
                             color: Colors.black54,
                             fontWeight: FontWeight.w500,
@@ -92,21 +102,21 @@ class _VoiceRecordingScreenState extends State<VoiceRecordingScreen> {
                           width: 64,
                           height: 64,
                           decoration: BoxDecoration(
-                            color: _isRecording
+                            color: isRecording
                                 ? Colors.red.shade400
                                 : Colors.grey.shade300,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
+                                color: Colors.black.withOpacity(0.1),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: Icon(
-                            _isRecording ? Icons.stop : Icons.mic,
-                            color: _isRecording ? Colors.white : Colors.black54,
+                            isRecording ? Icons.stop : Icons.mic,
+                            color: isRecording ? Colors.white : Colors.black54,
                             size: 28,
                           ),
                         ),
@@ -117,7 +127,7 @@ class _VoiceRecordingScreenState extends State<VoiceRecordingScreen> {
                   const SizedBox(height: 20),
 
                   // Recording status
-                  if (_isRecording)
+                  if (isRecording)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -149,41 +159,24 @@ class _VoiceRecordingScreenState extends State<VoiceRecordingScreen> {
     );
   }
 
-
   Future<void> _toggleRecording() async {
-    if (_isRecording) {
+    final recordingProvider = context.read<RecordingProvider>();
+
+    if (recordingProvider.isRecording) {
       // Stop recording
       final String? savedPath = await _audioService.stopRecording();
+      recordingProvider.stopRecording();
 
       if (savedPath != null) {
         // Save recording to provider
         if (mounted) {
           context.read<RecordingProvider>().setRecording(savedPath);
         }
-        
-        setState(() {
-          _isRecording = false;
-          _statusText = "Recording saved!";
-        });
 
         // Auto-navigate back after brief success message
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
             Navigator.pop(context);
-          }
-        });
-      } else {
-        setState(() {
-          _isRecording = false;
-          _statusText = "Failed to save recording";
-        });
-
-        // Reset status text after 3 seconds
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            setState(() {
-              _statusText = "Say something...";
-            });
           }
         });
       }
@@ -192,23 +185,7 @@ class _VoiceRecordingScreenState extends State<VoiceRecordingScreen> {
       final bool started = await _audioService.startRecording();
 
       if (started) {
-        setState(() {
-          _isRecording = true;
-          _statusText = "";
-        });
-      } else {
-        setState(() {
-          _statusText = "Permission denied or error starting recording";
-        });
-
-        // Reset status text after 3 seconds
-        Future.delayed(const Duration(seconds: 3), () {
-          if (mounted) {
-            setState(() {
-              _statusText = "Say something...";
-            });
-          }
-        });
+        recordingProvider.startRecording();
       }
     }
   }
@@ -216,8 +193,9 @@ class _VoiceRecordingScreenState extends State<VoiceRecordingScreen> {
   @override
   void dispose() {
     // Cancel any ongoing recording when leaving the screen
-    if (_isRecording) {
+    if (context.read<RecordingProvider>().isRecording) {
       _audioService.cancelRecording();
+      context.read<RecordingProvider>().stopRecording();
     }
     super.dispose();
   }
