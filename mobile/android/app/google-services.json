@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1058171507489",
+    "project_id": "krishi-saarthi-main",
+    "storage_bucket": "krishi-saarthi-main.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1058171507489:android:a2b065b3a4a75c41052460",
+        "android_client_info": {
+          "package_name": "com.example.krishi_saarthi_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuiBX21Kj7bVDE9_cIIEiEqsONLKl6z9E"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
