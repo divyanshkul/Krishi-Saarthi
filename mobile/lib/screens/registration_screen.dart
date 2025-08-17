@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../models/user_profile.dart';
+import '../services/firebase_service.dart';
 import 'home_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
@@ -11,6 +13,7 @@ class RegistrationScreen extends StatefulWidget {
 class _RegistrationScreenState extends State<RegistrationScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  bool _isLoading = false;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -194,7 +197,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   Widget _buildDropdown(
     List<String> items,
     String hint,
-    Function(String?) onSave,
+    Function(String?) onChanged,
   ) {
     return DropdownButtonFormField<String>(
       decoration: InputDecoration(
@@ -210,8 +213,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       items: items.map((String value) {
         return DropdownMenuItem<String>(value: value, child: Text(value));
       }).toList(),
-      onChanged: (newValue) {},
-      onSaved: onSave,
+      onChanged: onChanged,
       validator: (value) {
         if (value == null) {
           return 'Please select an option';
@@ -260,25 +262,77 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             borderRadius: BorderRadius.circular(10),
           ),
         ),
-        onPressed: () {
-          if (_formKey.currentState!.validate()) {
-            _formKey.currentState!.save();
+        onPressed: _isLoading ? null : _handleSubmit,
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Color(0xFFFFB823))
+            : const Text(
+                'Submit',
+                style: TextStyle(fontSize: 20, color: Color(0xFFFFB823)),
+              ),
+      ),
+    );
+  }
+
+  Future<void> _handleSubmit() async {
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        UserProfile userProfile = UserProfile(
+          name: _nameController.text,
+          age: int.parse(_ageController.text),
+          gender: _gender!,
+          landHolding: _landHolding!,
+          crop: _crop!,
+          caste: _caste!,
+          income: _income!,
+        );
+
+        String? userId = await FirebaseService.saveUserProfile(userProfile);
+
+        if (mounted) {
+          if (userId != null) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('User Registered Successfully!')),
+              const SnackBar(
+                content: Text('Profile saved successfully!'),
+                backgroundColor: Colors.green,
+              ),
             );
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (context) => const HomeScreen()),
               (Route<dynamic> route) => false,
             );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to save profile. Please try again.'),
+                backgroundColor: Colors.red,
+              ),
+            );
           }
-        },
-        child: const Text(
-          'Submit',
-          style: TextStyle(fontSize: 20, color: Color(0xFFFFB823)),
-        ),
-      ),
-    );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
   }
 }
 

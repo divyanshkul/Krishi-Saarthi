@@ -46,6 +46,10 @@ dependencies:
   shared_preferences: ^2.2.2
   url_launcher: ^6.2.0
   lottie: ^3.3.1
+  # Firebase dependencies
+  firebase_core: ^2.24.2
+  cloud_firestore: ^4.13.6
+  firebase_auth: ^4.15.3
 
 dev_dependencies:
   flutter_test:
