@@ -8,10 +8,12 @@ from twilio.rest import Client
 from dotenv import load_dotenv
 from typing import Optional
 import uvicorn
+import asyncio
 
 load_dotenv()
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
+TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 
 # Initialize Twilio client
 client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
@@ -20,6 +22,42 @@ client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 os.makedirs('recordings', exist_ok=True)
 
 app = FastAPI(title="Krishi Saarthi Voice Recording API")
+
+async def process_audio_with_model(audio_file_path: str) -> str:
+    """
+    Placeholder for processing audio with a machine learning model.
+    This should take the audio file path and return the processed result string.
+    """
+    # Simulate processing time
+    await asyncio.sleep(5)
+    
+    # result = your_model.process(audio_file_path)
+    
+    # dummy response
+    return "Based on your question about crop diseases, I recommend applying organic fungicide and ensuring proper drainage. For more details, visit your nearest agriculture center."
+
+
+async def send_sms_to_caller(phone_number: str, message: str) -> bool:
+    """Send SMS with the processed result to the caller."""
+    try:
+        if not TWILIO_PHONE_NUMBER:
+            print("XXXXXXXX TWILIO_PHONE_NUMBER not set in environment variables XXXXXXXX")
+            return False
+            
+        message_instance = client.messages.create(
+            body=message,
+            from_=TWILIO_PHONE_NUMBER,
+            to=phone_number
+        )
+        
+        print(f"SMS sent successfully to {phone_number}")
+        print(f"Message SID: {message_instance.sid}")
+        return True
+        
+    except Exception as e:
+        print(f"XXXXXXXX Error sending SMS: {str(e)} XXXXXXXX")
+        return False
+
 
 @app.get("/")
 @app.post("/")
@@ -70,7 +108,7 @@ async def recording_complete(
         clean_caller = ''.join(c for c in caller_number if c.isalnum())
         filename = f"recording_{timestamp}_{clean_caller}_{RecordingSid}.wav"
         filepath = os.path.join('recordings', filename)
-        
+
         wav_url = RecordingUrl + '.wav'
         
         print(f"Downloading recording from: {wav_url}")
@@ -97,15 +135,46 @@ async def recording_complete(
                 recording = client.recordings(RecordingSid)
                 recording.delete()
             
+            # Process the audio with your ML model and send SMS
+            if caller_number != 'unknown':
+                print(f"Processing audio with ML model...")
+                
+                try:
+                    # Process the audio file with your model
+                    result_message = await process_audio_with_model(filepath)
+                    
+                    print(f"Model processing complete. Result: {result_message[:100]}...")
+                    
+                    # Send SMS with the result
+                    sms_sent = await send_sms_to_caller(caller_number, result_message)
+                    
+                    if sms_sent:
+                        print(f"Complete workflow finished successfully!")
+                    else:
+                        print(f"XXXXXXXX Audio processed but SMS failed to send XXXXXXXX")
+                        
+                except Exception as model_error:
+                    print(f"XXXXXXXX Error in model processing: {str(model_error)} XXXXXXXX")
+                    # Send error message to user
+                    error_message = "Sorry, we couldn't process your question right now. Please try again later or contact our support team."
+                    await send_sms_to_caller(caller_number, error_message)
+            else:
+                print("XXXXXXXX Cannot send SMS - caller number unknown XXXXXXXX")
+            
         else:
             print(f"XXXXXXXX Failed to download recording. Status code: {response.status_code} XXXXXXXX")
             print(f"Response: {response.text}")
             
     except Exception as e:
         print(f"XXXXXXXX Error downloading recording: {str(e)} XXXXXXXX")
+        
+        # Send error SMS to caller if we have their number
+        if caller_number != 'unknown':
+            error_message = "Sorry, there was a technical issue processing your call. Please try again."
+            await send_sms_to_caller(caller_number, error_message)
     
     resp = VoiceResponse()
-    resp.say("Your recording has been saved. Thank you!")
+    resp.say("Your recording has been saved and is being processed. You will receive an SMS with the response shortly. Thank you!")
     resp.hangup()
     
     return Response(content=str(resp), media_type="application/xml")
@@ -120,4 +189,4 @@ async def health():
 
 
 if __name__ == "__main__":
-    uvicorn.run("answer_phone:app", host="0.0.0.0", port=3000, reload=True)
+    uvicorn.run("twilio_config:app", host="0.0.0.0", port=3000, reload=True)
