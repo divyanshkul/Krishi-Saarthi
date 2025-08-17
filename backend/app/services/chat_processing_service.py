@@ -6,6 +6,7 @@ from app.utils.logger import get_logger
 from app.schemas.chat import ChatResponse, WorkflowType
 from app.services.demo_content_service import DemoContentService
 from app.services.agents.translation_agent import TranslationAgent, AgenticServiceProcessor
+from app.services.agents.dharti_main_agent import MainAgent
 
 logger = get_logger(__name__)
 
@@ -46,15 +47,14 @@ class ChatProcessingService:
             translation_result = await translation_agent.process_audio(audio_path)
             
             if translation_result.get("success", False):
-                logger.info(f"🔄 Translation successful, processing with agentic services...")
+                logger.info(f"🔄 Translation successful, processing with Main Agent...")
                 
-                # Process with agentic services (placeholder for now)
-                agentic_response = await AgenticServiceProcessor.process_with_agents(translation_result)
+                # Process with Main Agent
+                main_agent = MainAgent()
+                agent_response = await main_agent.process_query(translation_result, image_path=None)
                 
-                response_content = DemoContentService.select_demo_response(WorkflowType.AUDIO_ONLY)
-                # TODO: Replace demo content with agentic_response when ready
-                
-                logger.info(f"📝 Final response prepared for audio-only workflow")
+                logger.info(f"📝 Main Agent processing complete for audio-only workflow")
+                response_content = agent_response
             else:
                 logger.warning(f"⚠️  Translation failed, using fallback demo content")
                 response_content = DemoContentService.select_demo_response(WorkflowType.AUDIO_ONLY)
@@ -87,16 +87,15 @@ class ChatProcessingService:
             
             if translation_result.get("success", False):
                 logger.info(f"🔄 Translation successful for audio+image workflow")
-                logger.info(f"🖼️  Image analysis will be integrated with translation context")
+                logger.info(f"🤖 Processing with Main Agent...")
                 
-                # Process with agentic services (placeholder for now)
-                # TODO: Include image analysis in agentic processing
-                agentic_response = await AgenticServiceProcessor.process_with_agents(translation_result)
+                # Process with Main Agent
+                main_agent = MainAgent()
+                image_path = os.path.join("output", image_filename)
+                agent_response = await main_agent.process_query(translation_result, image_path)
                 
-                response_content = DemoContentService.select_demo_response(WorkflowType.AUDIO_WITH_IMAGE)
-                # TODO: Replace demo content with combined audio+image agentic response
-                
-                logger.info(f"📝 Final response prepared for audio+image workflow")
+                logger.info(f"📝 Main Agent processing complete")
+                response_content = agent_response
             else:
                 logger.warning(f"⚠️  Translation failed, using fallback demo content")
                 response_content = DemoContentService.select_demo_response(WorkflowType.AUDIO_WITH_IMAGE)
@@ -119,7 +118,28 @@ class ChatProcessingService:
     async def handle_text_only(cls, text: str) -> ChatResponse:
         logger.info(f"Executing text-only workflow for query: '{text[:50]}...'")
         
-        response_content = DemoContentService.select_demo_response(WorkflowType.TEXT_ONLY)
+        try:
+            # Create translation result for text input
+            translation_result = {
+                "success": True,
+                "original_transcription": text,
+                "translation": text,  # Assume text is already in English
+                "agricultural_terms": [],
+                "confidence": "High",
+                "reasoning": "Direct text input"
+            }
+            
+            # Process with Main Agent
+            logger.info(f"🤖 Processing text-only with Main Agent...")
+            main_agent = MainAgent()
+            agent_response = await main_agent.process_query(translation_result, image_path=None)
+            
+            logger.info(f"📝 Main Agent processing complete for text-only workflow")
+            response_content = agent_response
+        
+        except Exception as e:
+            logger.error(f"❌ Error in text-only workflow: {str(e)}")
+            response_content = DemoContentService.select_demo_response(WorkflowType.TEXT_ONLY)
         
         result = ChatResponse(
             success=True,
@@ -134,7 +154,29 @@ class ChatProcessingService:
     async def handle_text_with_image(cls, text: str, image_filename: str) -> ChatResponse:
         logger.info(f"Executing text+image workflow - Text: '{text[:50]}...', Image: {image_filename}")
         
-        response_content = DemoContentService.select_demo_response(WorkflowType.TEXT_WITH_IMAGE)
+        try:
+            # Create translation result for text input
+            translation_result = {
+                "success": True,
+                "original_transcription": text,
+                "translation": text,  # Assume text is already in English
+                "agricultural_terms": [],
+                "confidence": "High",
+                "reasoning": "Direct text input"
+            }
+            
+            # Process with Main Agent
+            logger.info(f"🤖 Processing text+image with Main Agent...")
+            main_agent = MainAgent()
+            image_path = os.path.join("output", image_filename)
+            agent_response = await main_agent.process_query(translation_result, image_path)
+            
+            logger.info(f"📝 Main Agent processing complete")
+            response_content = agent_response
+        
+        except Exception as e:
+            logger.error(f"❌ Error in text+image workflow: {str(e)}")
+            response_content = DemoContentService.select_demo_response(WorkflowType.TEXT_WITH_IMAGE)
         
         result = ChatResponse(
             success=True,

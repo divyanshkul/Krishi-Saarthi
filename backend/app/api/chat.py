@@ -8,6 +8,7 @@ from app.utils.logger import get_logger
 from app.schemas.chat import ChatResponse, ErrorResponse
 from app.services.chat_processing_service import ChatProcessingService
 from app.services.tools.vlm_tool import VLMTool
+from app.services.agents.dharti_main_agent import MainAgent
 
 logger = get_logger(__name__)
 
@@ -230,5 +231,62 @@ async def test_vlm_fallback(
             content={
                 "success": False,
                 "error": f"VLM fallback test failed: {str(e)}"
+            }
+        )
+
+
+@router.post("/test/agent")
+async def test_main_agent(
+    text: str = Form(...),
+    image: Optional[UploadFile] = File(None)
+):
+    logger.info(f"Testing Main Agent - Text: '{text[:50]}...', Image: {image.filename if image else 'None'}")
+    
+    try:
+        # Handle image upload if provided
+        image_path = None
+        processed_files = []
+        
+        if image:
+            if not image.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+                raise HTTPException(status_code=400, detail="Only JPG/PNG images are supported")
+            
+            image_filename = await ChatProcessingService.save_file(image, "test_agent")
+            image_path = os.path.join("output", image_filename)
+            processed_files.append(image_filename)
+        
+        # Create translation result for the agent
+        translation_result = {
+            "success": True,
+            "original_transcription": text,
+            "translation": text,
+            "agricultural_terms": [],
+            "confidence": "High",
+            "reasoning": "Direct test input"
+        }
+        
+        # Test Main Agent
+        main_agent = MainAgent()
+        agent_response = await main_agent.process_query(translation_result, image_path)
+        
+        # Format response for testing
+        result = {
+            "success": True,
+            "agent_response": agent_response.dict() if hasattr(agent_response, 'dict') else str(agent_response),
+            "query": text,
+            "image_provided": image is not None,
+            "processed_files": processed_files
+        }
+        
+        logger.info(f"Main Agent test completed successfully")
+        return JSONResponse(content=result)
+    
+    except Exception as e:
+        logger.error(f"Error in Main Agent test: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": f"Main Agent test failed: {str(e)}"
             }
         )
