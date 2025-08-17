@@ -12,7 +12,12 @@ class Settings(BaseSettings):
     gpu_health_endpoint: str = "/api/health/detailed"
     vllm_generate_endpoint: str = "/api/vllm/generate"
     gpu_timeout_seconds: int = 30
-    
+
+    # Twilio configs
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""
+
     class Config:
         env_file = ".env"
 
