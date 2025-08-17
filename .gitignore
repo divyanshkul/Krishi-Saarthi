@@ -235,3 +235,4 @@ mobile/lib/widgets/video_carousel.dart
 backend/output/
 mobile/android/app/google-services.json
 testing-ai/
+backend/firebase-service-account.json
