@@ -233,3 +233,7 @@ mobile/lib/widgets/video_carousel.dart
 
 # Backend output folder for uploaded recordings
 backend/output/
+
+# Service account and API key files
+backend/krishi-saarthi-main-firebase-adminsdk-fbsvc-1f18180255.json
+mobile/android/app/google-services.json
