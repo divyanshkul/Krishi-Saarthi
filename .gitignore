@@ -234,3 +234,4 @@ mobile/lib/widgets/video_carousel.dart
 # Backend output folder for uploaded recordings
 backend/output/
 mobile/android/app/google-services.json
+testing-ai/

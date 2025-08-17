@@ -7,6 +7,7 @@ import shutil
 from app.utils.logger import get_logger
 from app.schemas.chat import ChatResponse, ErrorResponse
 from app.services.chat_processing_service import ChatProcessingService
+from app.services.tools.vlm_tool import VLMTool
 
 logger = get_logger(__name__)
 
@@ -107,3 +108,127 @@ async def process_text(
     except Exception as e:
         logger.error(f"Error processing text request: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error processing text: {str(e)}")
+
+
+@router.get("/test/vlm/health")
+async def test_vlm_health():
+    logger.info("Testing VLM health endpoint")
+    
+    try:
+        vlm_tool = VLMTool()
+        health_result = await vlm_tool.check_health()
+        
+        logger.info(f"VLM health check result: {health_result}")
+        return JSONResponse(content=health_result)
+    
+    except Exception as e:
+        logger.error(f"Error checking VLM health: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": f"Health check failed: {str(e)}"
+            }
+        )
+
+
+@router.post("/test/vlm/analyze")
+async def test_vlm_analyze(
+    image_file: UploadFile = File(...),
+    question: str = Form(default="What do you see in this agricultural image?")
+):
+    logger.info(f"Testing VLM analysis - Image: {image_file.filename}, Question: {question}")
+    
+    if not image_file.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+        raise HTTPException(status_code=400, detail="Only JPG/PNG images are supported")
+    
+    try:
+        # Save the uploaded image temporarily
+        image_filename = await ChatProcessingService.save_file(image_file, "test_image")
+        image_path = os.path.join("output", image_filename)
+        
+        # Analyze with VLM tool
+        vlm_tool = VLMTool()
+        analysis_result = await vlm_tool.analyze_image(image_path, question)
+        
+        logger.info(f"VLM analysis result: {analysis_result}")
+        
+        analysis_result["image_filename"] = image_filename
+        
+        return JSONResponse(content=analysis_result)
+    
+    except Exception as e:
+        logger.error(f"Error in VLM analysis test: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": f"VLM analysis failed: {str(e)}"
+            }
+        )
+
+
+@router.get("/test/vlm/connection")
+async def test_vlm_connection():
+    logger.info("Testing VLM connection")
+    
+    try:
+        vlm_tool = VLMTool()
+        connection_result = await vlm_tool.test_connection()
+        
+        logger.info(f"VLM connection test result: {connection_result}")
+        return JSONResponse(content=connection_result)
+    
+    except Exception as e:
+        logger.error(f"Error testing VLM connection: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": f"Connection test failed: {str(e)}"
+            }
+        )
+
+
+@router.post("/test/vlm/fallback")
+async def test_vlm_fallback(
+    image: UploadFile = File(...),
+    question: str = Form(default="What do you see in this agricultural image?")
+):
+    logger.info(f"Testing VLM fallback mechanism - Image: {image.filename}")
+    
+    if not image.filename.lower().endswith(('.jpg', '.jpeg', '.png')):
+        raise HTTPException(status_code=400, detail="Only JPG/PNG images are supported")
+    
+    try:
+        # Save the uploaded image temporarily
+        image_filename = await ChatProcessingService.save_file(image, "test_fallback")
+        image_path = os.path.join("output", image_filename)
+        
+        vlm_tool = VLMTool()
+        
+        original_url = vlm_tool.base_url
+        vlm_tool.base_url = "http://intentionally-broken-url:9999"
+        
+        logger.info("Intentionally breaking VLLM URL to test fallback mechanism")
+        
+        analysis_result = await vlm_tool.analyze_image(image_path, question)
+        
+        vlm_tool.base_url = original_url
+        
+        logger.info(f"Fallback test result: {analysis_result}")
+        
+        analysis_result["test_type"] = "forced_fallback"
+        analysis_result["image_filename"] = image_filename
+        
+        return JSONResponse(content=analysis_result)
+    
+    except Exception as e:
+        logger.error(f"Error in VLM fallback test: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": f"VLM fallback test failed: {str(e)}"
+            }
+        )
