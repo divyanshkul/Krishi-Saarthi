@@ -23,9 +23,9 @@ class SuggestionCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   suggestion.title,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),

@@ -22,6 +22,10 @@ class ApiConfig {
   static String get youtubeSearchEndpoint => '$baseUrl/youtube/search/keywords';
   static String get youtubeHealthEndpoint => '$baseUrl/youtube/health';
 
+  // Guided mode endpoints
+  static String get guidedModeEndpoint => '$baseUrl/guided-mode';
+  static String get guidedModeHealthEndpoint => '$baseUrl/guided-mode/health';
+
   // Helper method to build full API URLs
   static String buildUrl(String endpoint) {
     return '$baseUrl$endpoint';
