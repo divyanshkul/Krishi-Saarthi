@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     FIREBASE_CLIENT_CERT_URL: str = ""
     FIREBASE_SERVICE_ACCOUNT_PATH: str = ""
     
+    # Government Schemes RAG Configuration
+    pinecone_api_key: str = ""
+    
     # YouTube search configuration
     YOUTUBE_MAX_RESULTS: int = 10  # Maximum videos to return (enforced)
     YOUTUBE_MIN_RESULTS: int = 3   # Minimum videos to return (enforced)

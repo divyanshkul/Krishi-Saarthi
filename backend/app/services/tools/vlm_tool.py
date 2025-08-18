@@ -85,11 +85,11 @@ class VLMTool:
             # Agricultural-focused system prompt
             agricultural_prompt = f"""You are an agricultural advisor. Analyze the image and answer: "{question}"
 
-Provide a brief response (2-3 sentences) with:
-- What you observe in the plant
-- Basic recommendation if any issues are visible
+            Provide a brief response (2-3 sentences) with:
+            - What you observe in the plant
+            - Basic recommendation if any issues are visible
 
-Keep the advice practical but concise."""
+            Keep the advice practical but concise."""
 
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o",
