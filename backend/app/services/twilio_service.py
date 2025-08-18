@@ -1,5 +1,6 @@
 import os
 from twilio.rest import Client
+from openai import OpenAI
 from app.core.config import settings
 from app.services.agents.translation_agent import TranslationAgent
 from app.services.agents.dharti_main_agent import MainAgent
@@ -13,6 +14,7 @@ class TwilioService:
     
     def __init__(self):
         self.client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+        self.openai_client = OpenAI(api_key=settings.openai_api_key)
         self.translation_agent = TranslationAgent()
         self.main_agent = MainAgent()
     
@@ -41,27 +43,52 @@ class TwilioService:
             
             logger.info(f"📝 Agent response generated: {len(response_text)} characters")
             
-            # Truncate to 160 chars for SMS
-            truncated_response = self.truncate_response(response_text)
-            logger.info(f"📱 SMS response ready: {len(truncated_response)} characters")
+            # Summarize to under 150 chars for SMS using GPT-4o-mini
+            sms_response = await self.summarize_for_sms(response_text)
+            logger.info(f"📱 SMS response ready: {len(sms_response)} characters")
             
-            return truncated_response
+            return sms_response
             
         except Exception as e:
             logger.error(f"Error in process_audio_with_model: {str(e)}")
             return "Sorry, we couldn't process your question right now. Please try again later or contact our support team."
     
-    def truncate_response(self, text: str, max_chars: int = 160) -> str:
-        """Truncate response to SMS-friendly length"""
-        if len(text) <= max_chars:
+    async def summarize_for_sms(self, text: str) -> str:
+        """Summarize response to under 150 characters using GPT-4o-mini"""
+        if len(text) <= 150:
             return text
         
-        # Smart truncation at word boundary if possible
-        if ' ' in text[:max_chars-3]:
-            truncated = text[:max_chars-3].rsplit(' ', 1)[0]
-            return truncated + "..."
-        else:
-            return text[:157] + "..."
+        try:
+            summarize_prompt = f"""Summarize this agricultural advice in under 150 characters. Be direct and actionable. No labels, no "SMS Summary:", just the advice.
+
+Original: "{text}"
+
+Summarized advice:"""
+
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "Summarize agricultural advice precisely. Return ONLY the summarized advice, no labels or prefixes."},
+                    {"role": "user", "content": summarize_prompt}
+                ],
+                max_tokens=50,
+                temperature=0.1
+            )
+            
+            summary = response.choices[0].message.content.strip()
+            
+            # Fallback if still too long
+            if len(summary) > 150:
+                summary = summary[:147] + "..."
+            
+            return summary
+            
+        except Exception as e:
+            logger.error(f"SMS summarization failed: {str(e)}")
+            # Fallback to simple truncation
+            if len(text) <= 147:
+                return text
+            return text[:147] + "..."
     
     async def send_sms_to_caller(self, phone_number: str, message: str) -> bool:
         """Send SMS with the processed result to the caller."""

@@ -5,6 +5,8 @@ from app.core.config import settings
 from app.utils.logger import get_logger
 from app.services.tools.vlm_tool import VLMTool
 from app.services.tools.kcc_tool import KCCTool
+from app.services.tools.lstm_price_tool import LSTMPriceTool
+from app.services.tools.govt_scheme_rag_tool import GovtSchemeRAGTool
 from app.schemas.chat import ResponseContent
 
 logger = get_logger(__name__)
@@ -24,6 +26,8 @@ class MainAgent:
         self.openai_client = OpenAI(api_key=settings.openai_api_key)
         self.vlm_tool = VLMTool()
         self.kcc_tool = KCCTool()
+        self.lstm_tool = LSTMPriceTool()
+        self.govt_scheme_tool = GovtSchemeRAGTool()
         
         # Intent keywords for classification (fallback mechanism)
         self.intent_keywords = {
@@ -47,7 +51,10 @@ class MainAgent:
             ],
             "MARKET_INFO": [
                 "price", "mandi", "sell", "market", "rate", "cost", "value",
-                "when to sell", "market price", "selling time", "profit"
+                "when to sell", "market price", "selling time", "profit",
+                "today price", "tomorrow price", "weekly price", "price prediction",
+                "rice price", "sugarcane price", "ajwan price", "crop price",
+                "price forecast", "price trend", "best day to sell", "current price"
             ],
             "GOVT_SCHEME": [
                 "subsidy", "loan", "scheme", "government", "help", "assistance",
@@ -271,20 +278,90 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
                 }
             
             elif primary_intent == "MARKET_INFO":
-                logger.info("Intent Classifier Decision: Market Intelligence (Mock) - Price and market queries")
-                results["market"] = {
-                    "success": True,
-                    "response": "Current market prices are favorable. Consider checking local mandi rates before selling. Timing your sales during peak demand periods can maximize profits.",
-                    "source": "market_mock"
-                }
+                logger.info("Intent Classifier Decision: LSTM Price Prediction - Market price queries")
+                
+                # Extract crop from query
+                crop = self._extract_crop_from_query(query)
+                
+                if crop and crop in self.lstm_tool.supported_crops:
+                    logger.info(f"DHARTI (Main Agent): Executing LSTM tool for {crop} price prediction...")
+                    
+                    try:
+                        # Get LSTM price prediction
+                        prediction_result = await self.lstm_tool.predict_weekly_prices(crop=crop)
+                        
+                        if prediction_result.get("success"):
+                            # Format with GPT-4o-mini
+                            formatted_response = await self._format_price_prediction(crop, prediction_result, query)
+                            results["lstm"] = {
+                                "success": True,
+                                "response": formatted_response,
+                                "source": "lstm_price_prediction",
+                                "crop": crop
+                            }
+                            logger.info(f"DHARTI (Main Agent): LSTM price prediction completed for {crop}")
+                        else:
+                            results["market"] = {
+                                "success": True,
+                                "response": f"Unable to predict {crop} prices currently. Check your local mandi for current rates and trends.",
+                                "source": "lstm_fallback"
+                            }
+                    except Exception as e:
+                        logger.error(f"LSTM prediction failed for {crop}: {str(e)}")
+                        results["market"] = {
+                            "success": True,
+                            "response": f"Price prediction service temporarily unavailable. Please check current {crop} rates at your local mandi.",
+                            "source": "lstm_error"
+                        }
+                else:
+                    # Fallback for unsupported crops or general market queries
+                    logger.info("Intent Classifier Decision: General Market Intelligence (Mock) - Unsupported crop or general query")
+                    results["market"] = {
+                        "success": True,
+                        "response": "Current market prices are favorable. Consider checking local mandi rates before selling. Timing your sales during peak demand periods can maximize profits.",
+                        "source": "market_mock"
+                    }
             
             elif primary_intent == "GOVT_SCHEME":
-                logger.info("Intent Classifier Decision: Government Schemes (Mock) - Subsidy and support queries")
-                results["govt_scheme"] = {
-                    "success": True,
-                    "response": "You may be eligible for PM-KISAN scheme and crop insurance. Visit your nearest CSC or agriculture office with Aadhaar and land documents for enrollment.",
-                    "source": "govt_scheme_mock"
-                }
+                logger.info("Intent Classifier Decision: Government Schemes RAG - Subsidy and scheme queries")
+                logger.info("DHARTI (Main Agent): Executing Government Schemes RAG tool...")
+                
+                try:
+                    # Call the RAG tool
+                    rag_result = await self.govt_scheme_tool.search_schemes(
+                        query=query,
+                        top_n_schemes=3
+                    )
+                    
+                    if rag_result.get("success"):
+                        results["govt_scheme"] = {
+                            "success": True,
+                            "response": rag_result.get("rag_response", "Found relevant schemes for you."),
+                            "source": "govt_scheme_rag",
+                            "schemes": rag_result.get("schemes", []),
+                            "total_schemes": rag_result.get("total_schemes", 0),
+                            "using_rag": rag_result.get("using_rag", False)
+                        }
+                        logger.info(f"DHARTI (Main Agent): Found {rag_result.get('total_schemes', 0)} schemes using RAG: {rag_result.get('using_rag', False)}")
+                    else:
+                        # Fallback response if RAG fails
+                        results["govt_scheme"] = {
+                            "success": True,
+                            "response": "You may be eligible for PM-KISAN scheme and crop insurance. Visit your nearest CSC or agriculture office with Aadhaar and land documents for enrollment.",
+                            "source": "govt_scheme_fallback",
+                            "error": rag_result.get("error", "RAG search failed")
+                        }
+                        logger.warning(f"DHARTI (Main Agent): RAG tool failed, using fallback response")
+                
+                except Exception as e:
+                    logger.error(f"DHARTI (Main Agent): Government Schemes RAG tool error: {str(e)}")
+                    # Ultimate fallback
+                    results["govt_scheme"] = {
+                        "success": True,
+                        "response": "You may be eligible for PM-KISAN scheme and crop insurance. Visit your nearest CSC or agriculture office with Aadhaar and land documents for enrollment.",
+                        "source": "govt_scheme_error_fallback",
+                        "error": str(e)
+                    }
             
             return results
             
@@ -339,3 +416,74 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
             return ResponseContent(
                 text="I encountered an issue formatting the response. Please try again or contact support."
             )
+    
+    async def _format_price_prediction(self, crop: str, prediction_result: Dict[str, Any], query: str) -> str:
+        """
+        Format LSTM price prediction using GPT-4o-mini for concise farmer-friendly response
+        """
+        try:
+            if not prediction_result.get("success", False):
+                return f"Unable to get price prediction for {crop}. Please check current market rates from your local mandi."
+            
+            # Extract prediction data
+            predictions = prediction_result.get("predictions", [])
+            if not predictions:
+                return f"No price data available for {crop} prediction."
+            
+            # Create concise prompt for GPT-4o-mini
+            price_data = []
+            for i, pred in enumerate(predictions[:7]):  # Next 7 days
+                day_name = ["Today", "Tomorrow", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"][i]
+                price_data.append(f"{day_name}: ₹{pred:.0f}")
+            
+            price_summary = "\n".join(price_data)
+            
+            format_prompt = f"""You are an agricultural price advisor. Analyze these {crop} price predictions and provide a concise 2-3 sentence response for farmers.
+
+Price Predictions:
+{price_summary}
+
+Farmer's question: "{query}"
+
+Provide:
+1. Today/tomorrow's price (as relevant to query)
+2. Best day to sell this week
+3. Simple trend (rising/falling/stable)
+
+Keep response under 50 words, practical and actionable."""
+
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a concise agricultural price advisor. Provide brief, actionable price advice."},
+                    {"role": "user", "content": format_prompt}
+                ],
+                max_tokens=100,
+                temperature=0.1
+            )
+            
+            formatted_response = response.choices[0].message.content.strip()
+            return formatted_response
+            
+        except Exception as e:
+            logger.error(f"Price formatting failed: {str(e)}")
+            return f"Current {crop} price trends suggest checking your local mandi for the best rates today."
+    
+    def _extract_crop_from_query(self, query: str) -> Optional[str]:
+        """
+        Extract crop name from query for LSTM price prediction
+        """
+        query_lower = query.lower()
+        
+        # Supported LSTM crops
+        crop_mappings = {
+            "rice": ["rice", "paddy", "chawal"],
+            "sugarcane": ["sugarcane", "sugar cane", "ganne"],
+            "ajwan": ["ajwan", "ajwain", "carom"]
+        }
+        
+        for crop, aliases in crop_mappings.items():
+            if any(alias in query_lower for alias in aliases):
+                return crop
+        
+        return None
