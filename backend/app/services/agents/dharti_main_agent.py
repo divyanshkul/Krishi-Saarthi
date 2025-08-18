@@ -169,6 +169,13 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
             content = response.choices[0].message.content.strip()
             intent_result = self._parse_intent_json(content)
             
+            # Override: If image is provided, always prioritize VISUAL_ANALYSIS
+            if has_image:
+                intent_result["primary_intent"] = "VISUAL_ANALYSIS"
+                intent_result["needs_visual_analysis"] = True
+                intent_result["reasoning"] = f"Image provided - overriding to VISUAL_ANALYSIS. Original: {intent_result.get('reasoning', 'N/A')}"
+                logger.info("DHARTI (Main Agent): Image detected - forcing VISUAL_ANALYSIS intent")
+            
             logger.info(f"DHARTI (Main Agent): Intent Analysis ({end_time - start_time:.2f}s):")
             logger.info(f"   Primary Intent: {intent_result.get('primary_intent', 'UNKNOWN')}")
             logger.info(f"   Needs Visual: {intent_result.get('needs_visual_analysis', False)}")
@@ -219,16 +226,16 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
             if score > 0:
                 intent_scores[intent] = score
         
-        # Determine primary intent
-        if has_image and any(keyword in text_lower for keyword in self.intent_keywords["VISUAL_ANALYSIS"]):
+        # Determine primary intent - ALWAYS prioritize VISUAL_ANALYSIS if image provided
+        if has_image:
             primary_intent = "VISUAL_ANALYSIS"
             needs_visual = True
         elif intent_scores:
             primary_intent = max(intent_scores, key=intent_scores.get)
-            needs_visual = primary_intent == "VISUAL_ANALYSIS" and has_image
+            needs_visual = False
         else:
             primary_intent = "FARMING_ADVICE"
-            needs_visual = has_image
+            needs_visual = False
         
         return {
             "primary_intent": primary_intent,
@@ -405,8 +412,23 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
             else:
                 final_text = "I understand your agricultural query. For the best assistance, please provide more specific details about your farming concern."
             
-            # TODO: Add video/website URLs based on intent
-            response_content = ResponseContent(text=final_text)
+            # Extract URLs for schemes
+            website_url = None
+            website_title = None
+            
+            if "govt_scheme" in tool_results and tool_results["govt_scheme"].get("success"):
+                schemes = tool_results["govt_scheme"].get("schemes", [])
+                if schemes and len(schemes) > 0:
+                    # Get first scheme URL
+                    website_url = schemes[0].get("url", None)
+                    website_title = schemes[0].get("name", "Government Scheme")
+                    logger.info(f"DHARTI (Main Agent): Added scheme URL: {website_title}")
+            
+            response_content = ResponseContent(
+                text=final_text,
+                website_url=website_url,
+                website_title=website_title
+            )
             
             logger.info(f"DHARTI (Main Agent): Final response length: {len(final_text)} characters")
             return response_content
@@ -434,7 +456,8 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
             price_data = []
             for i, pred in enumerate(predictions[:7]):  # Next 7 days
                 day_name = ["Today", "Tomorrow", "Day 3", "Day 4", "Day 5", "Day 6", "Day 7"][i]
-                price_data.append(f"{day_name}: ₹{pred:.0f}")
+                modal_price = pred.get('modal_price', 0)
+                price_data.append(f"{day_name}: ₹{modal_price:.0f}")
             
             price_summary = "\n".join(price_data)
             

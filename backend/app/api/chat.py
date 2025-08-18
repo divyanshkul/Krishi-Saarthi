@@ -77,7 +77,13 @@ async def process_audio(
             result = await ChatProcessingService.handle_audio_only(audio_filename)
         
         logger.info(f"Audio processing completed successfully")
-        return JSONResponse(content=result.dict(exclude_none=True))
+        
+        # Format for Flutter app compatibility
+        flutter_response = {
+            "success": result.success,
+            "response": result.response.dict(exclude_none=True)
+        }
+        return JSONResponse(content=flutter_response)
     
     except Exception as e:
         logger.error(f"Error processing audio request: {str(e)}")
@@ -104,7 +110,13 @@ async def process_text(
             result = await ChatProcessingService.handle_text_only(text)
         
         logger.info(f"Text processing completed successfully")
-        return JSONResponse(content=result.dict(exclude_none=True))
+        
+        # Format for Flutter app compatibility
+        flutter_response = {
+            "success": result.success,
+            "response": result.response.dict(exclude_none=True)
+        }
+        return JSONResponse(content=flutter_response)
     
     except Exception as e:
         logger.error(f"Error processing text request: {str(e)}")
