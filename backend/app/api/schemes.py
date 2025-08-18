@@ -9,7 +9,6 @@ logger = get_logger(__name__)
 
 router = APIRouter(prefix="/schemes", tags=["Government Schemes"])
 
-# Initialize RAG tool
 rag_tool = GovtSchemeRAGTool()
 
 
@@ -101,7 +100,6 @@ async def test_rag():
     logger.info("======== RAG Test Endpoint ========")
     
     try:
-        # Test with a sample query
         test_query = "irrigation subsidy drip sprinkler micro irrigation"
         
         result = await rag_tool.search_schemes(

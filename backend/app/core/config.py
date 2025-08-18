@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     
     # Government Schemes RAG Configuration
     pinecone_api_key: str = ""
+    GOOGLE_API_KEY: str = ""
     
     # YouTube search configuration
     YOUTUBE_MAX_RESULTS: int = 10  # Maximum videos to return (enforced)

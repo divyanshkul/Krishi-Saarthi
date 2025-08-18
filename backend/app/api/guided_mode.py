@@ -1,6 +1,3 @@
-"""
-API routes for AI-powered agricultural guidance system.
-"""
 
 from fastapi import APIRouter, HTTPException, Depends, Path, Query
 from typing import Optional
