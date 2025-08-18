@@ -4,6 +4,7 @@ from openai import OpenAI
 from app.core.config import settings
 from app.utils.logger import get_logger
 from app.services.tools.vlm_tool import VLMTool
+from app.services.tools.kcc_tool import KCCTool
 from app.schemas.chat import ResponseContent
 
 logger = get_logger(__name__)
@@ -22,6 +23,7 @@ class MainAgent:
     def __init__(self):
         self.openai_client = OpenAI(api_key=settings.openai_api_key)
         self.vlm_tool = VLMTool()
+        self.kcc_tool = KCCTool()
         
         # Intent keywords for classification (fallback mechanism)
         self.intent_keywords = {
@@ -29,6 +31,14 @@ class MainAgent:
                 "disease", "pest", "spots", "leaves", "color", "damage", "infection", 
                 "brown", "yellow", "black", "white", "holes", "wilting", "rotten",
                 "what is this", "identify", "diagnose", "problem with", "issue with"
+            ],
+            "CROP_VARIETIES": [
+                "variety", "varieties", "seed", "seeds", "cultivar", "hybrid", "strain",
+                "soybean", "soyabean", "js-335", "js-95", "nrc-37", "maus-71", "js-2210", "js-2211",
+                "which variety", "best variety", "variety for", "varieties for", "recommend variety",
+                "high yield", "drought resistant", "disease resistant", "pest resistant",
+                "early maturing", "late maturing", "kharif", "rabi", "crop variety",
+                "seed selection", "which seed", "best seed", "varieties available"
             ],
             "FARMING_ADVICE": [
                 "how to", "when to", "best practice", "should I", "technique",
@@ -60,10 +70,10 @@ class MainAgent:
             agricultural_terms = translation_result.get("agricultural_terms", [])
             confidence = translation_result.get("confidence", "Unknown")
             
-            logger.info(f"🌍 DHARTI (Main Agent): Processing query: '{translated_text[:60]}...'")
-            logger.info(f"🌍 DHARTI (Main Agent): Agricultural terms: {agricultural_terms}")
-            logger.info(f"🌍 DHARTI (Main Agent): Translation confidence: {confidence}")
-            logger.info(f"🌍 DHARTI (Main Agent): Image provided: {image_path is not None}")
+            logger.info(f"DHARTI (Main Agent): Processing query: '{translated_text[:60]}...'")
+            logger.info(f"DHARTI (Main Agent): Agricultural terms: {agricultural_terms}")
+            logger.info(f"DHARTI (Main Agent): Translation confidence: {confidence}")
+            logger.info(f"DHARTI (Main Agent): Image provided: {image_path is not None}")
             
             # Step 1: Analyze intent
             intent_analysis = await self._analyze_intent(
@@ -85,13 +95,13 @@ class MainAgent:
             end_time = time.time()
             total_time = end_time - start_time
             
-            logger.info(f"🎯 DHARTI (Main Agent): Processing completed in {total_time:.2f}s")
+            logger.info(f"DHARTI (Main Agent): Processing completed in {total_time:.2f}s")
             logger.info("======== DHARTI (Main Agent) Processing Complete ========")
             
             return final_response
             
         except Exception as e:
-            logger.error(f"❌ DHARTI (Main Agent): Processing failed - {str(e)}")
+            logger.error(f"DHARTI (Main Agent): Processing failed - {str(e)}")
             # Fallback to basic response
             return ResponseContent(
                 text=f"I encountered an issue processing your query, but I can see you're asking about: {translated_text[:100]}. Please try rephrasing your question or contact support."
@@ -104,7 +114,7 @@ class MainAgent:
         """
         Analyze the intent of the farmer's query using GPT-4o-mini
         """
-        logger.info("🧠 DHARTI (Main Agent): Analyzing query intent...")
+        logger.info("DHARTI (Main Agent): Analyzing query intent...")
         
         try:
             start_time = time.time()
@@ -118,7 +128,7 @@ Image provided: {has_image}
 
 Analyze the query and respond with a JSON object:
 {{
-    "primary_intent": "VISUAL_ANALYSIS|FARMING_ADVICE|MARKET_INFO|GOVT_SCHEME",
+    "primary_intent": "VISUAL_ANALYSIS|CROP_VARIETIES|FARMING_ADVICE|MARKET_INFO|GOVT_SCHEME",
     "needs_visual_analysis": true/false,
     "confidence": 0.0-1.0,
     "reasoning": "Brief explanation",
@@ -127,9 +137,12 @@ Analyze the query and respond with a JSON object:
 
 Intent Guidelines:
 - VISUAL_ANALYSIS: Disease/pest identification, visual problems, image analysis needed
-- FARMING_ADVICE: General farming practices, how-to questions, cultivation guidance  
+- CROP_VARIETIES: Questions about crop varieties, seeds, hybrids, cultivars, which variety to plant
+- FARMING_ADVICE: General farming practices, how-to questions, cultivation techniques
 - MARKET_INFO: Prices, selling advice, market trends
 - GOVT_SCHEME: Government schemes, subsidies, financial assistance
+
+IMPORTANT: If query mentions "variety", "varieties", "seed selection", specific variety names (JS-335, NRC-37, etc.), or asks "which variety" or "best variety", use CROP_VARIETIES.
 
 If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS."""
 
@@ -149,7 +162,7 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
             content = response.choices[0].message.content.strip()
             intent_result = self._parse_intent_json(content)
             
-            logger.info(f"🎯 DHARTI (Main Agent): Intent Analysis ({end_time - start_time:.2f}s):")
+            logger.info(f"DHARTI (Main Agent): Intent Analysis ({end_time - start_time:.2f}s):")
             logger.info(f"   Primary Intent: {intent_result.get('primary_intent', 'UNKNOWN')}")
             logger.info(f"   Needs Visual: {intent_result.get('needs_visual_analysis', False)}")
             logger.info(f"   Confidence: {intent_result.get('confidence', 0.0)}")
@@ -188,7 +201,7 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
     
     def _fallback_intent_analysis(self, text: str, has_image: bool) -> Dict[str, Any]:
         """Simple keyword-based fallback intent analysis"""
-        logger.info("🔄 DHARTI (Main Agent): Using fallback intent analysis...")
+        logger.info("DHARTI (Main Agent): Using fallback intent analysis...")
         
         text_lower = text.lower()
         intent_scores = {}
@@ -228,22 +241,29 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
         primary_intent = intent_analysis.get("primary_intent", "FARMING_ADVICE")
         needs_visual = intent_analysis.get("needs_visual_analysis", False)
         
-        logger.info(f"🔧 DHARTI (Main Agent): Executing tools for intent: {primary_intent}")
+        logger.info(f"DHARTI (Main Agent): Executing tools for intent: {primary_intent}")
         
         results = {}
         
         try:
             # Execute VLM tool if visual analysis is needed
             if needs_visual and image_path:
-                logger.info("🌍 DHARTI (Main Agent): Executing VLM tool...")
+                logger.info("Intent Classifier Decision: VLM (Vision-Language Model) tool - Image analysis required")
+                logger.info("DHARTI (Main Agent): Executing VLM tool...")
                 vlm_result = await self.vlm_tool.analyze_image(image_path, query)
                 results["vlm"] = vlm_result
-                logger.info(f"🌍 DHARTI (Main Agent): VLM tool completed: {vlm_result.get('success', False)}")
+                logger.info(f"DHARTI (Main Agent): VLM tool completed: {vlm_result.get('success', False)}")
             
-            # For now, other tools return mock responses
-            # TODO: Implement actual tools in later phases
+            # Execute KCC tool for crop varieties
+            if primary_intent == "CROP_VARIETIES":
+                logger.info("Intent Classifier Decision: KCC (Kisan Call Center) tool - Crop variety query detected")
+                logger.info("DHARTI (Main Agent): Executing KCC tool for variety query...")
+                kcc_result = await self.kcc_tool.get_advice(query)
+                results["kcc"] = kcc_result
+                logger.info(f"DHARTI (Main Agent): KCC tool completed: {kcc_result.get('success', False)}")
             
-            if primary_intent == "FARMING_ADVICE":
+            elif primary_intent == "FARMING_ADVICE":
+                logger.info("Intent Classifier Decision: General Farming Advice (Mock) - Basic farming guidance")
                 results["kcc"] = {
                     "success": True,
                     "response": f"Based on your query about farming, here's some general advice: Consider proper irrigation, soil testing, and following seasonal planting guidelines for your region.",
@@ -251,6 +271,7 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
                 }
             
             elif primary_intent == "MARKET_INFO":
+                logger.info("Intent Classifier Decision: Market Intelligence (Mock) - Price and market queries")
                 results["market"] = {
                     "success": True,
                     "response": "Current market prices are favorable. Consider checking local mandi rates before selling. Timing your sales during peak demand periods can maximize profits.",
@@ -258,6 +279,7 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
                 }
             
             elif primary_intent == "GOVT_SCHEME":
+                logger.info("Intent Classifier Decision: Government Schemes (Mock) - Subsidy and support queries")
                 results["govt_scheme"] = {
                     "success": True,
                     "response": "You may be eligible for PM-KISAN scheme and crop insurance. Visit your nearest CSC or agriculture office with Aadhaar and land documents for enrollment.",
@@ -282,7 +304,7 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
         """
         Format the final response for the farmer
         """
-        logger.info("📝 DHARTI (Main Agent): Formatting final response...")
+        logger.info("DHARTI (Main Agent): Formatting final response...")
         
         try:
             # Combine responses from different tools
@@ -292,13 +314,13 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
             if "vlm" in tool_results and tool_results["vlm"].get("success"):
                 vlm_response = tool_results["vlm"]["response"]
                 response_parts.append(vlm_response)
-                logger.info("🌍 DHARTI (Main Agent): Added VLM analysis to response")
+                logger.info("DHARTI (Main Agent): Added VLM analysis to response")
             
             # Process other tool results
             for tool_name, result in tool_results.items():
                 if tool_name != "vlm" and result.get("success"):
                     response_parts.append(result["response"])
-                    logger.info(f"🌍 DHARTI (Main Agent): Added {tool_name} response")
+                    logger.info(f"DHARTI (Main Agent): Added {tool_name} response")
             
             # Create final combined response
             if response_parts:
@@ -309,7 +331,7 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
             # TODO: Add video/website URLs based on intent
             response_content = ResponseContent(text=final_text)
             
-            logger.info(f"🌍 DHARTI (Main Agent): Final response length: {len(final_text)} characters")
+            logger.info(f"DHARTI (Main Agent): Final response length: {len(final_text)} characters")
             return response_content
             
         except Exception as e:

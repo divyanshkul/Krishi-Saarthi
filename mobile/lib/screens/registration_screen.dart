@@ -3,6 +3,7 @@ import '../models/user_profile.dart';
 import '../models/crop.dart';
 import '../services/firebase_service.dart';
 import 'home_screen.dart';
+import 'splash_screen.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -44,7 +45,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           icon: const Icon(Icons.arrow_back, color: Color(0xFF2D4F2B)),
           onPressed: () {
             if (_currentPage == 0) {
-              Navigator.of(context).pop();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const SplashScreen()),
+              );
             } else {
               _pageController.previousPage(
                 duration: const Duration(milliseconds: 300),
