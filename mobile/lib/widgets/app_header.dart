@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
-import '../utils/translation_helper.dart';
+import '../screens/farmer_profile_screen.dart';
 import 'animated_language_toggle.dart';
 
 class AppHeader extends StatelessWidget {
@@ -47,6 +47,30 @@ class AppHeader extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+              // Profile icon
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FarmerProfileScreen(),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               // animated language toggle
               const AnimatedLanguageToggle(),
             ],
@@ -91,7 +115,10 @@ class AppHeader extends StatelessWidget {
                         builder: (context, languageProvider, child) {
                           return Text(
                             languageProvider.translate('bhopalClearWeather'),
-                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                            ),
                           );
                         },
                       ),
@@ -106,7 +133,10 @@ class AppHeader extends StatelessWidget {
                       builder: (context, languageProvider, child) {
                         return Text(
                           languageProvider.translate('humidity'),
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
                         );
                       },
                     ),
@@ -115,7 +145,10 @@ class AppHeader extends StatelessWidget {
                       builder: (context, languageProvider, child) {
                         return Text(
                           languageProvider.translate('rain'),
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
                         );
                       },
                     ),

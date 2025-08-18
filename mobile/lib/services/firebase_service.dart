@@ -83,6 +83,43 @@ class FirebaseService {
     }
   }
 
+  static Future<bool> addCrop(Crop crop) async {
+    try {
+      if (_auth.currentUser == null) return false;
+
+      String userId = _auth.currentUser!.uid;
+      await _firestore
+          .collection('farmers')
+          .doc(userId)
+          .collection('crops')
+          .add(crop.toJson());
+
+      return true;
+    } catch (e) {
+      print('Error adding crop: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteCrop(String cropId) async {
+    try {
+      if (_auth.currentUser == null) return false;
+
+      String userId = _auth.currentUser!.uid;
+      await _firestore
+          .collection('farmers')
+          .doc(userId)
+          .collection('crops')
+          .doc(cropId)
+          .delete();
+
+      return true;
+    } catch (e) {
+      print('Error deleting crop: $e');
+      return false;
+    }
+  }
+
   static Future<bool> updateUserProfile(UserProfile userProfile) async {
     try {
       if (_auth.currentUser == null) return false;
