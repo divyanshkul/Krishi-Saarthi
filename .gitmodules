@@ -1,0 +1,3 @@
+[submodule "core-ml"]
+	path = core-ml
+	url = https://github.com/divyanshkul/krishi-saarthi-core-ml
