@@ -4,7 +4,8 @@ class UserProfile {
   final int age;
   final String gender;
   final String landHolding;
-  final String crop;
+  final String district;
+  final String state;
   final String caste;
   final String income;
   final DateTime createdAt;
@@ -15,7 +16,8 @@ class UserProfile {
     required this.age,
     required this.gender,
     required this.landHolding,
-    required this.crop,
+    required this.district,
+    required this.state,
     required this.caste,
     required this.income,
     DateTime? createdAt,
@@ -27,7 +29,8 @@ class UserProfile {
       'age': age,
       'gender': gender,
       'landHolding': landHolding,
-      'crop': crop,
+      'district': district,
+      'state': state,
       'caste': caste,
       'income': income,
       'createdAt': createdAt.toIso8601String(),
@@ -41,7 +44,8 @@ class UserProfile {
       age: json['age'],
       gender: json['gender'],
       landHolding: json['landHolding'],
-      crop: json['crop'],
+      district: json['district'],
+      state: json['state'],
       caste: json['caste'],
       income: json['income'],
       createdAt: DateTime.parse(json['createdAt']),

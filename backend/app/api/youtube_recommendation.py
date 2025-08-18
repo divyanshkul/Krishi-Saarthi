@@ -32,18 +32,29 @@ def get_youtube_service() -> YouTubeRecommendationService:
     "/farmer/{farmer_id}/videos",
     response_model=VideoRecommendationResponse,
     summary="Get video recommendations for a farmer",
-    description="Get personalized farming video recommendations based on farmer's crop data and current farming stage."
+    description="Get personalized farming video recommendations based on farmer's crop data and current farming stage. Always returns between 3-10 videos."
 )
 async def get_farmer_video_recommendations(
     farmer_id: str,
     crop_id: Optional[str] = Query(None, description="Optional specific crop ID"),
+    min_videos: int = Query(3, ge=3, le=10, description="Minimum number of videos (3-10)"),
+    max_videos: int = Query(10, ge=3, le=10, description="Maximum number of videos (3-10)"),
     youtube_service: YouTubeRecommendationService = Depends(get_youtube_service)
 ):
-    """Get video recommendations for a specific farmer."""
+    """Get video recommendations for a specific farmer with guaranteed video count."""
     try:
-        logger.info(f"API request for video recommendations: farmer_id={farmer_id}, crop_id={crop_id}")
+        logger.info(f"API request for video recommendations: farmer_id={farmer_id}, crop_id={crop_id}, min={min_videos}, max={max_videos}")
         
-        result = await youtube_service.get_video_recommendations(farmer_id, crop_id)
+        # Validate min/max relationship
+        if min_videos > max_videos:
+            raise HTTPException(
+                status_code=400,
+                detail="min_videos cannot be greater than max_videos"
+            )
+        
+        result = await youtube_service.get_video_recommendations(
+            farmer_id, crop_id, min_videos, max_videos
+        )
         
         if not result['success']:
             raise HTTPException(
@@ -124,19 +135,23 @@ async def get_system_status(
     "/search/keywords",
     response_model=KeywordSearchResponse,
     summary="Search videos by keywords",
-    description="Search for farming videos using custom keywords without farmer/crop context."
+    description="Search for farming videos using custom keywords without farmer/crop context. Always returns between 3-10 videos."
 )
 async def search_videos_by_keywords(
     request: KeywordSearchRequest,
     youtube_service: YouTubeRecommendationService = Depends(get_youtube_service)
 ):
-    """Search videos directly by keywords."""
+    """Search videos directly by keywords with guaranteed video count."""
     try:
-        logger.info(f"API request for keyword search: keywords={request.keywords}")
+        logger.info(f"API request for keyword search: keywords={request.keywords}, max={request.max_results}")
+        
+        # Enforce min_results if not in request (for backward compatibility)
+        min_results = getattr(request, 'min_results', 3)
         
         result = await youtube_service.search_videos_by_keywords(
             request.keywords, 
-            request.max_results
+            request.max_results,
+            min_results
         )
         
         if not result['success']:
@@ -158,18 +173,26 @@ async def search_videos_by_keywords(
     "/search",
     response_model=KeywordSearchResponse,
     summary="Search videos by keywords (GET method)",
-    description="Search for farming videos using keywords via GET request."
+    description="Search for farming videos using keywords via GET request. Always returns between 3-10 videos."
 )
 async def search_videos_by_keywords_get(
     keywords: List[str] = Query(..., description="Search keywords"),
-    max_results: int = Query(default=10, ge=1, le=50, description="Maximum number of videos"),
+    max_results: int = Query(default=10, ge=3, le=10, description="Maximum number of videos (3-10)"),
+    min_results: int = Query(default=3, ge=3, le=10, description="Minimum number of videos (3-10)"),
     youtube_service: YouTubeRecommendationService = Depends(get_youtube_service)
 ):
-    """Search videos by keywords using GET method."""
+    """Search videos by keywords using GET method with guaranteed video count."""
     try:
-        logger.info(f"API GET request for keyword search: keywords={keywords}")
+        logger.info(f"API GET request for keyword search: keywords={keywords}, min={min_results}, max={max_results}")
         
-        result = await youtube_service.search_videos_by_keywords(keywords, max_results)
+        # Validate min/max relationship
+        if min_results > max_results:
+            raise HTTPException(
+                status_code=400,
+                detail="min_results cannot be greater than max_results"
+            )
+        
+        result = await youtube_service.search_videos_by_keywords(keywords, max_results, min_results)
         
         if not result['success']:
             raise HTTPException(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user_profile.dart';
+import '../models/crop.dart';
 import '../services/firebase_service.dart';
 import 'home_screen.dart';
 
@@ -17,16 +18,20 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   final _formKey = GlobalKey<FormState>();
 
-  // Page 1 Controllers
+  // Page 1 Controllers (Basic Info)
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _ageController = TextEditingController();
   String? _gender;
   String? _landHolding;
 
-  // Page 2 Controllers
+  // Page 2 Controllers (Location & Farming Info)
+  String? _state;
+  String? _district;
   String? _crop;
+  final TextEditingController _varietyController = TextEditingController();
   String? _caste;
   String? _income;
+  DateTime? _sowingDate;
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +135,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Farming & Socio-Economic Info',
+            'Location & Farming Info',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
@@ -139,25 +144,76 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Help us understand you better.',
+            'Help us provide personalized recommendations.',
             style: TextStyle(fontSize: 16, color: Color(0xFF708A58)),
           ),
           const SizedBox(height: 30),
           _buildDropdown(
-            ['Rice', 'Wheat', 'Maize', 'Sugarcane', 'Cotton'],
-            'Which crops do you usually grow?',
+            [
+              'Madhya Pradesh',
+              'Uttar Pradesh',
+              'Punjab',
+              'Haryana',
+              'Gujarat',
+              'Maharashtra',
+              'Karnataka',
+              'Tamil Nadu',
+              'Andhra Pradesh',
+              'Rajasthan',
+            ],
+            'State',
+            (value) {
+              setState(() {
+                _state = value;
+                _district = null; // Reset district when state changes
+              });
+            },
+          ),
+          const SizedBox(height: 20),
+          _buildDropdown(_getDistrictsForState(_state), 'District', (value) {
+            setState(() {
+              _district = value;
+            });
+          }),
+          const SizedBox(height: 20),
+          _buildDropdown(
+            [
+              'Rice',
+              'Wheat',
+              'Maize',
+              'Sugarcane',
+              'Cotton',
+              'Soybean',
+              'Pulses',
+              'Vegetables',
+              'Fruits',
+            ],
+            'Primary Crop',
             (value) => _crop = value,
           ),
           const SizedBox(height: 20),
+          _buildTextField(
+            _varietyController,
+            'Crop Variety (e.g., HD-2967 for Wheat)',
+            required: false,
+          ),
+          const SizedBox(height: 20),
+          _buildDatePicker('Sowing Date', (date) => _sowingDate = date),
+          const SizedBox(height: 20),
           _buildDropdown(
             ['General', 'OBC', 'SC', 'ST'],
-            'Caste Category',
+            'Category',
             (value) => _caste = value,
           ),
           const SizedBox(height: 20),
           _buildDropdown(
-            ['< ₹1,00,000', '₹1,00,000 - ₹5,00,000', '> ₹5,00,000'],
-            'Annual Family Income',
+            [
+              'Less than ₹50,000',
+              '₹50,000 - ₹1,00,000',
+              '₹1,00,000 - ₹2,00,000',
+              'More than ₹2,00,000',
+            ],
+            'Annual Income',
             (value) => _income = value,
           ),
           const SizedBox(height: 40),
@@ -167,10 +223,134 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     );
   }
 
+  List<String> _getDistrictsForState(String? state) {
+    if (state == null) return ['Select state first'];
+
+    switch (state) {
+      case 'Madhya Pradesh':
+        return [
+          'Bhopal',
+          'Indore',
+          'Gwalior',
+          'Jabalpur',
+          'Ujjain',
+          'Sagar',
+          'Dewas',
+          'Satna',
+          'Ratlam',
+          'Mandsaur',
+        ];
+      case 'Uttar Pradesh':
+        return [
+          'Lucknow',
+          'Kanpur',
+          'Agra',
+          'Varanasi',
+          'Meerut',
+          'Allahabad',
+          'Bareilly',
+          'Gorakhpur',
+          'Mathura',
+          'Firozabad',
+        ];
+      case 'Punjab':
+        return [
+          'Chandigarh',
+          'Ludhiana',
+          'Amritsar',
+          'Jalandhar',
+          'Patiala',
+          'Bathinda',
+          'Mohali',
+          'Hoshiarpur',
+        ];
+      case 'Haryana':
+        return [
+          'Gurugram',
+          'Faridabad',
+          'Panipat',
+          'Ambala',
+          'Yamunanagar',
+          'Rohtak',
+          'Hisar',
+          'Karnal',
+        ];
+      case 'Gujarat':
+        return [
+          'Ahmedabad',
+          'Surat',
+          'Vadodara',
+          'Rajkot',
+          'Bhavnagar',
+          'Jamnagar',
+          'Junagadh',
+          'Gandhinagar',
+        ];
+      case 'Maharashtra':
+        return [
+          'Mumbai',
+          'Pune',
+          'Nagpur',
+          'Nashik',
+          'Aurangabad',
+          'Solapur',
+          'Kolhapur',
+          'Sangli',
+        ];
+      case 'Karnataka':
+        return [
+          'Bangalore',
+          'Mysore',
+          'Hubli',
+          'Mangalore',
+          'Belgaum',
+          'Gulbarga',
+          'Shimoga',
+          'Tumkur',
+        ];
+      case 'Tamil Nadu':
+        return [
+          'Chennai',
+          'Coimbatore',
+          'Madurai',
+          'Tiruchirappalli',
+          'Salem',
+          'Tirunelveli',
+          'Erode',
+          'Vellore',
+        ];
+      case 'Andhra Pradesh':
+        return [
+          'Visakhapatnam',
+          'Vijayawada',
+          'Guntur',
+          'Nellore',
+          'Kurnool',
+          'Rajahmundry',
+          'Tirupati',
+          'Anantapur',
+        ];
+      case 'Rajasthan':
+        return [
+          'Jaipur',
+          'Jodhpur',
+          'Udaipur',
+          'Kota',
+          'Bikaner',
+          'Ajmer',
+          'Alwar',
+          'Bhilwara',
+        ];
+      default:
+        return ['Select state first'];
+    }
+  }
+
   Widget _buildTextField(
     TextEditingController controller,
     String label, {
     TextInputType keyboardType = TextInputType.text,
+    bool required = true,
   }) {
     return TextFormField(
       controller: controller,
@@ -185,12 +365,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           borderSide: BorderSide.none,
         ),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Please enter $label';
-        }
-        return null;
-      },
+      validator: required
+          ? (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter $label';
+              }
+              return null;
+            }
+          : null,
     );
   }
 
@@ -215,11 +397,80 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       }).toList(),
       onChanged: onChanged,
       validator: (value) {
-        if (value == null) {
+        if (value == null ||
+            value == 'Select state first' ||
+            value == 'Select district') {
           return 'Please select an option';
         }
         return null;
       },
+    );
+  }
+
+  Widget _buildDatePicker(String label, Function(DateTime) onSelected) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF708A58),
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: () async {
+            final DateTime? picked = await showDatePicker(
+              context: context,
+              initialDate: DateTime.now().subtract(Duration(days: 30)),
+              firstDate: DateTime.now().subtract(Duration(days: 365)),
+              lastDate: DateTime.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    colorScheme: ColorScheme.light(
+                      primary: Color(0xFF2D4F2B),
+                      onPrimary: Colors.white,
+                      surface: Colors.white,
+                      onSurface: Colors.black,
+                    ),
+                  ),
+                  child: child!,
+                );
+              },
+            );
+            if (picked != null) {
+              onSelected(picked);
+              setState(() {});
+            }
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _sowingDate != null
+                      ? '${_sowingDate!.day}/${_sowingDate!.month}/${_sowingDate!.year}'
+                      : 'Select sowing date',
+                  style: TextStyle(
+                    color: _sowingDate != null
+                        ? Colors.black
+                        : Colors.grey.shade600,
+                  ),
+                ),
+                Icon(Icons.calendar_today, color: Color(0xFF708A58)),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -274,7 +525,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
   Future<void> _handleSubmit() async {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState!.validate() && _sowingDate != null) {
       _formKey.currentState!.save();
 
       setState(() {
@@ -287,12 +538,26 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           age: int.parse(_ageController.text),
           gender: _gender!,
           landHolding: _landHolding!,
-          crop: _crop!,
+          district: _district!,
+          state: _state!,
           caste: _caste!,
           income: _income!,
         );
 
-        String? userId = await FirebaseService.saveUserProfile(userProfile);
+        Crop crop = Crop(
+          cropType: _crop!,
+          variety: _varietyController.text.isNotEmpty
+              ? _varietyController.text
+              : 'Standard',
+          sowingDate: _sowingDate!,
+          district: _district!,
+          state: _state!,
+        );
+
+        String? userId = await FirebaseService.saveUserProfile(
+          userProfile,
+          crop,
+        );
 
         if (mounted) {
           if (userId != null) {
@@ -332,6 +597,15 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           });
         }
       }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please fill all required fields including sowing date',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
     }
   }
 }

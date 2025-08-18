@@ -43,6 +43,8 @@ class VideoRecommendationResponse(BaseModel):
     current_stage: Optional[str] = None
     videos: List[VideoRecommendation]
     total_videos: int
+    min_videos_requested: Optional[int] = None
+    max_videos_requested: Optional[int] = None
     error: Optional[str] = None
 
     class Config:
@@ -83,7 +85,8 @@ class SystemStatusResponse(BaseModel):
 class KeywordSearchRequest(BaseModel):
     """Request model for keyword-based video search."""
     keywords: List[str] = Field(..., description="List of search keywords")
-    max_results: int = Field(default=10, ge=1, le=50, description="Maximum number of videos to return")
+    max_results: int = Field(default=10, ge=3, le=10, description="Maximum number of videos to return (3-10)")
+    min_results: int = Field(default=3, ge=3, le=10, description="Minimum number of videos to return (3-10)")
 
 
 class KeywordSearchResponse(BaseModel):
@@ -92,6 +95,8 @@ class KeywordSearchResponse(BaseModel):
     keywords: List[str]
     videos: List[VideoRecommendation]
     total_videos: int
+    min_videos_requested: Optional[int] = None
+    max_videos_requested: Optional[int] = None
     error: Optional[str] = None
 
     class Config:

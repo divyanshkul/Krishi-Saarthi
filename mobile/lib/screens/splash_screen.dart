@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'registration_screen.dart';
+import 'home_screen.dart';
+import '../services/firebase_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -59,6 +61,28 @@ class _SplashScreenState extends State<SplashScreen>
         curve: const Interval(0.5, 0.75, curve: Curves.easeOut),
       ),
     );
+
+    // Check for existing user and migrate if needed
+    _checkUserStatus();
+  }
+
+  Future<void> _checkUserStatus() async {
+    // Wait for animations to complete
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (mounted) {
+      // Check if user exists
+      final userProfile = await FirebaseService.getUserProfile();
+
+      if (userProfile != null && mounted) {
+        // User exists, navigate to home
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+      // If no user, stay on splash and show register button
+    }
   }
 
   @override

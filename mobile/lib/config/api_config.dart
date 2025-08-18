@@ -15,6 +15,13 @@ class ApiConfig {
   static String get processAudioEndpoint => '$baseUrl/chat/process-audio';
   static String get processTextEndpoint => '$baseUrl/chat/process-text';
 
+  // YouTube recommendation endpoints
+  static String get youtubeFarmerVideosEndpoint => '$baseUrl/youtube/farmer';
+  static String get youtubeSystemStatusEndpoint =>
+      '$baseUrl/youtube/system/status';
+  static String get youtubeSearchEndpoint => '$baseUrl/youtube/search/keywords';
+  static String get youtubeHealthEndpoint => '$baseUrl/youtube/health';
+
   // Helper method to build full API URLs
   static String buildUrl(String endpoint) {
     return '$baseUrl$endpoint';

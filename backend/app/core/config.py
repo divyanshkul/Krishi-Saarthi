@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     FIREBASE_SERVICE_ACCOUNT_PATH: str = ""
     
     # YouTube search configuration
-    YOUTUBE_MAX_RESULTS: int = 15
+    YOUTUBE_MAX_RESULTS: int = 10  # Maximum videos to return (enforced)
+    YOUTUBE_MIN_RESULTS: int = 3   # Minimum videos to return (enforced)
     YOUTUBE_SEARCH_LANGUAGES: str = "hi,en"  # Comma-separated languages
     YOUTUBE_VIDEO_DURATION: str = "medium"  # short, medium, long
     
@@ -56,6 +57,7 @@ class Settings(BaseSettings):
         """Generate YouTube search configuration dictionary."""
         return {
             'max_results': self.YOUTUBE_MAX_RESULTS,
+            'min_results': self.YOUTUBE_MIN_RESULTS,
             'search_languages': self.YOUTUBE_SEARCH_LANGUAGES.split(','),
             'video_duration': self.YOUTUBE_VIDEO_DURATION
         }
