@@ -302,3 +302,38 @@ async def test_main_agent(
                 "error": f"Main Agent test failed: {str(e)}"
             }
         )
+
+
+@router.post("/test/cultural-practices")
+async def test_cultural_practices_tool(
+    query: str = Form(..., description="Cultural practices query to test")
+):
+    logger.info(f"Testing KCC Cultural Practices tool - Query: '{query[:50]}...'")
+    
+    try:
+        from app.services.tools.kcc_cultural_tool import KCCCulturalTool
+        
+        # Test KCC Cultural tool directly
+        cultural_tool = KCCCulturalTool()
+        cultural_result = await cultural_tool.get_practices(query)
+        
+        logger.info(f"Cultural practices test result: {cultural_result.get('success', False)}")
+        
+        result = {
+            "success": True,
+            "cultural_result": cultural_result,
+            "query": query,
+            "tool_endpoint": cultural_tool.full_api_url
+        }
+        
+        return JSONResponse(content=result)
+    
+    except Exception as e:
+        logger.error(f"Error in Cultural Practices test: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "success": False,
+                "error": f"Cultural Practices test failed: {str(e)}"
+            }
+        )

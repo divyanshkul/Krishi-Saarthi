@@ -12,7 +12,8 @@ class Settings(BaseSettings):
     gpu_server_base_url: str = "http://your-server:8000"
     gpu_health_endpoint: str = "/api/health/detailed"
     vllm_generate_endpoint: str = "/api/vllm/generate"
-    kcc_api_endpoint: str = "/api/kcc/query"
+    kcc_api_endpoint: str = "/api/kcc/varieties/query"
+    kcc_cultural_endpoint: str = "/api/kcc/cultural/query"
     gpu_timeout_seconds: int = 90
 
     # Twilio configs

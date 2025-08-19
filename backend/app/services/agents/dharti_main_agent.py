@@ -5,6 +5,7 @@ from app.core.config import settings
 from app.utils.logger import get_logger
 from app.services.tools.vlm_tool import VLMTool
 from app.services.tools.kcc_tool import KCCTool
+from app.services.tools.kcc_cultural_tool import KCCCulturalTool
 from app.services.tools.lstm_price_tool import LSTMPriceTool
 from app.services.tools.govt_scheme_rag_tool import GovtSchemeRAGTool
 from app.schemas.chat import ResponseContent
@@ -26,6 +27,7 @@ class MainAgent:
         self.openai_client = OpenAI(api_key=settings.openai_api_key)
         self.vlm_tool = VLMTool()
         self.kcc_tool = KCCTool()
+        self.kcc_cultural_tool = KCCCulturalTool()
         self.lstm_tool = LSTMPriceTool()
         self.govt_scheme_tool = GovtSchemeRAGTool()
         
@@ -46,8 +48,17 @@ class MainAgent:
             ],
             "FARMING_ADVICE": [
                 "how to", "when to", "best practice", "should I", "technique",
-                "planting", "sowing", "harvesting", "cultivation", "growing",
-                "fertilizer", "irrigation", "spacing", "timing"
+                "planting", "sowing", "harvesting", "cultivation", "growing"
+            ],
+            "CULTURAL_PRACTICES": [
+                "seed rate", "seeds per acre", "kg per hectare", "seeding rate",
+                "spacing", "distance between", "row spacing", "plant spacing",
+                "sowing depth", "planting depth", "how deep", "depth of sowing",
+                "fertilizer dose", "NPK", "manure", "urea dose", "fertilizer application",
+                "irrigation schedule", "watering schedule", "water requirement", "irrigation frequency",
+                "sowing method", "planting method", "broadcasting", "transplanting",
+                "plant population", "plants per acre", "plant density", "stand establishment",
+                "tillage", "land preparation", "field preparation", "bed preparation"
             ],
             "MARKET_INFO": [
                 "price", "mandi", "sell", "market", "rate", "cost", "value",
@@ -129,29 +140,30 @@ class MainAgent:
             # Create intent analysis prompt
             intent_prompt = f"""You are an agricultural AI assistant. Analyze this farmer's query to determine what they need.
 
-Query: "{text}"
-Agricultural terms found: {agricultural_terms}
-Image provided: {has_image}
+            Query: "{text}"
+            Agricultural terms found: {agricultural_terms}
+            Image provided: {has_image}
 
-Analyze the query and respond with a JSON object:
-{{
-    "primary_intent": "VISUAL_ANALYSIS|CROP_VARIETIES|FARMING_ADVICE|MARKET_INFO|GOVT_SCHEME",
-    "needs_visual_analysis": true/false,
-    "confidence": 0.0-1.0,
-    "reasoning": "Brief explanation",
-    "keywords_found": ["list", "of", "relevant", "keywords"]
-}}
+            Analyze the query and respond with a JSON object:
+            {{
+                "primary_intent": "VISUAL_ANALYSIS|CROP_VARIETIES|CULTURAL_PRACTICES|FARMING_ADVICE|MARKET_INFO|GOVT_SCHEME",
+                "needs_visual_analysis": true/false,
+                "confidence": 0.0-1.0,
+                "reasoning": "Brief explanation",
+                "keywords_found": ["list", "of", "relevant", "keywords"]
+            }}
 
-Intent Guidelines:
-- VISUAL_ANALYSIS: Disease/pest identification, visual problems, image analysis needed
-- CROP_VARIETIES: Questions about crop varieties, seeds, hybrids, cultivars, which variety to plant
-- FARMING_ADVICE: General farming practices, how-to questions, cultivation techniques
-- MARKET_INFO: Prices, selling advice, market trends
-- GOVT_SCHEME: Government schemes, subsidies, financial assistance
+            Intent Guidelines:
+            - VISUAL_ANALYSIS: Disease/pest identification, visual problems, image analysis needed
+            - CROP_VARIETIES: Questions about crop varieties, seeds, hybrids, cultivars, which variety to plant
+            - CULTURAL_PRACTICES: Farming practices like seed rates, spacing, fertilizer doses, irrigation schedules, sowing methods
+            - FARMING_ADVICE: General farming practices, how-to questions, cultivation techniques
+            - MARKET_INFO: Prices, selling advice, market trends
+            - GOVT_SCHEME: Government schemes, subsidies, financial assistance
 
-IMPORTANT: If query mentions "variety", "varieties", "seed selection", specific variety names (JS-335, NRC-37, etc.), or asks "which variety" or "best variety", use CROP_VARIETIES.
+            IMPORTANT: If query mentions "variety", "varieties", "seed selection", specific variety names (JS-335, NRC-37, etc.), or asks "which variety" or "best variety", use CROP_VARIETIES.
 
-If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS."""
+            If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS."""
 
             response = self.openai_client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -275,6 +287,14 @@ If image is provided AND visual keywords detected, prioritize VISUAL_ANALYSIS.""
                 kcc_result = await self.kcc_tool.get_advice(query)
                 results["kcc"] = kcc_result
                 logger.info(f"DHARTI (Main Agent): KCC tool completed: {kcc_result.get('success', False)}")
+            
+            # Execute KCC Cultural tool for farming practices
+            elif primary_intent == "CULTURAL_PRACTICES":
+                logger.info("Intent Classifier Decision: KCC Cultural Practices tool - Farming practices query detected")
+                logger.info("DHARTI (Main Agent): Executing KCC Cultural tool for practices query...")
+                cultural_result = await self.kcc_cultural_tool.get_practices(query)
+                results["cultural"] = cultural_result
+                logger.info(f"DHARTI (Main Agent): KCC Cultural tool completed: {cultural_result.get('success', False)}")
             
             elif primary_intent == "FARMING_ADVICE":
                 logger.info("Intent Classifier Decision: General Farming Advice (Mock) - Basic farming guidance")
