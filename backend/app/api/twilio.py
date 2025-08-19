@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, Request, BackgroundTasks
 from fastapi.responses import Response
 from twilio.twiml.voice_response import VoiceResponse
 from typing import Optional
@@ -20,6 +20,27 @@ twilio_service = TwilioService()
 
 # Ensure output directory exists (matching your existing structure)
 os.makedirs('output', exist_ok=True)
+
+
+async def process_audio_in_background(filepath: str, caller_number: str):
+    """Process audio in background to avoid webhook timeouts"""
+    try:
+        logger.info(f"🔄 Starting background processing for {caller_number}")
+        result_message = await twilio_service.process_audio_with_model(filepath)
+        
+        logger.info(f"✅ Background processing complete. Result: {result_message[:100]}...")
+        
+        sms_sent = await twilio_service.send_sms_to_caller(caller_number, result_message)
+        
+        if sms_sent:
+            logger.info(f"📱 Complete workflow finished successfully for {caller_number}")
+        else:
+            logger.error(f"❌ Audio processed but SMS failed to send to {caller_number}")
+            
+    except Exception as model_error:
+        logger.error(f"❌ Error in background processing for {caller_number}: {str(model_error)}")
+        error_message = "Sorry, we couldn't process your question right now. Please try again later or contact our support team."
+        await twilio_service.send_sms_to_caller(caller_number, error_message)
 
 
 @router.get("/")
@@ -50,6 +71,7 @@ async def handle_voice():
 
 @router.post("/recording-complete")
 async def recording_complete(
+    background_tasks: BackgroundTasks,
     RecordingUrl: Optional[str] = Form(None),
     RecordingSid: Optional[str] = Form(None),
     RecordingDuration: Optional[str] = Form(None),
@@ -100,40 +122,25 @@ async def recording_complete(
                 recording.delete()
             
             if caller_number != 'unknown':
-                print(f"Processing audio with ML model...")
-                
-                try:
-                    result_message = await twilio_service.process_audio_with_model(filepath)
-                    
-                    print(f"Model processing complete. Result: {result_message[:100]}...")
-                    
-                    sms_sent = await twilio_service.send_sms_to_caller(caller_number, result_message)
-                    
-                    if sms_sent:
-                        print(f"Complete workflow finished successfully!")
-                    else:
-                        print(f"XXXXXXXX Audio processed but SMS failed to send XXXXXXXX")
-                        
-                except Exception as model_error:
-                    print(f"XXXXXXXX Error in model processing: {str(model_error)} XXXXXXXX")
-                    error_message = "Sorry, we couldn't process your question right now. Please try again later or contact our support team."
-                    await twilio_service.send_sms_to_caller(caller_number, error_message)
+                logger.info(f"📋 Scheduling background processing for {caller_number}")
+                background_tasks.add_task(process_audio_in_background, filepath, caller_number)
             else:
-                print("XXXXXXXX Cannot send SMS - caller number unknown XXXXXXXX")
+                logger.warning("❌ Cannot process audio - caller number unknown")
             
         else:
             print(f"XXXXXXXX Failed to download recording. Status code: {response.status_code} XXXXXXXX")
             print(f"Response: {response.text}")
             
     except Exception as e:
-        print(f"XXXXXXXX Error downloading recording: {str(e)} XXXXXXXX")
+        logger.error(f"❌ Error downloading recording: {str(e)}")
         
         if caller_number != 'unknown':
             error_message = "Sorry, there was a technical issue processing your call. Please try again."
-            await twilio_service.send_sms_to_caller(caller_number, error_message)
+            # Schedule error SMS in background to avoid blocking webhook response
+            background_tasks.add_task(twilio_service.send_sms_to_caller, caller_number, error_message)
     
     resp = VoiceResponse()
-    resp.say("Your recording has been saved and is being processed. You will receive an SMS with the response shortly. Thank you!")
+    resp.say("Your recording has been saved and is being processed. You will receive an SMS with the response in a few minutes. Thank you!")
     resp.hangup()
     
     return Response(content=str(resp), media_type="application/xml")
