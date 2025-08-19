@@ -70,6 +70,12 @@ class MainAgent:
             "GOVT_SCHEME": [
                 "subsidy", "loan", "scheme", "government", "help", "assistance",
                 "support", "pm kisan", "insurance", "benefit", "yojana"
+            ],
+            "SUPPORT": [
+                "hopeless", "worthless", "failed", "can't go on", "everything failing",
+                "stressed", "depressed", "worried", "anxious", "scared", "upset",
+                "lost everything", "no hope", "burden", "ashamed", "feel bad",
+                "struggling", "difficult", "hard time", "overwhelmed", "desperate"
             ]
         }
     
@@ -146,7 +152,7 @@ class MainAgent:
 
             Analyze the query and respond with a JSON object:
             {{
-                "primary_intent": "VISUAL_ANALYSIS|CROP_VARIETIES|CULTURAL_PRACTICES|FARMING_ADVICE|MARKET_INFO|GOVT_SCHEME",
+                "primary_intent": "VISUAL_ANALYSIS|CROP_VARIETIES|CULTURAL_PRACTICES|FARMING_ADVICE|MARKET_INFO|GOVT_SCHEME|SUPPORT",
                 "needs_visual_analysis": true/false,
                 "confidence": 0.0-1.0,
                 "reasoning": "Brief explanation",
@@ -160,6 +166,7 @@ class MainAgent:
             - FARMING_ADVICE: General farming practices, how-to questions, cultivation techniques
             - MARKET_INFO: Prices, selling advice, market trends
             - GOVT_SCHEME: Government schemes, subsidies, financial assistance
+            - SUPPORT: Emotional distress, mental health concerns, farmer expressing hopelessness, stress, or personal struggles
 
             IMPORTANT: If query mentions "variety", "varieties", "seed selection", specific variety names (JS-335, NRC-37, etc.), or asks "which variety" or "best variety", use CROP_VARIETIES.
 
@@ -390,6 +397,30 @@ class MainAgent:
                         "error": str(e)
                     }
             
+            # Execute support response for emotional distress
+            elif primary_intent == "SUPPORT":
+                logger.info("Intent Classifier Decision: Support needed - Farmer expressing distress")
+                logger.info("DHARTI (Main Agent): Generating supportive response...")
+                
+                try:
+                    support_response = await self._generate_support_response(query)
+                    results["support"] = {
+                        "success": True,
+                        "response": support_response,
+                        "source": "support_response",
+                        "intent": "emotional_support"
+                    }
+                    logger.info("DHARTI (Main Agent): Support response generated successfully")
+                
+                except Exception as e:
+                    logger.error(f"DHARTI (Main Agent): Support response failed: {str(e)}")
+                    results["support"] = {
+                        "success": True,
+                        "response": "I understand you're going through a difficult time. Please reach out to Kisan Call Centre at 1800-180-1551 for support and guidance. You're not alone in this.",
+                        "source": "support_fallback",
+                        "error": str(e)
+                    }
+            
             return results
             
         except Exception as e:
@@ -512,6 +543,38 @@ Keep response under 50 words, practical and actionable."""
             logger.error(f"Price formatting failed: {str(e)}")
             return f"Current {crop} price trends suggest checking your local mandi for the best rates today."
     
+    async def _generate_support_response(self, query: str) -> str:
+        """
+        Generate supportive response for distressed farmers
+        """
+        try:
+            support_prompt = f"""A farmer is expressing distress or emotional difficulty: "{query}"
+
+Provide a brief, compassionate response (2-3 sentences) that:
+1. Acknowledges their struggle with empathy
+2. Offers gentle encouragement
+3. Mentions Kisan Call Centre: 1800-180-1551 for support
+4. If relevant, briefly suggest they may be eligible for government assistance programs
+
+Keep tone supportive but practical. Don't be overly dramatic."""
+
+            response = self.openai_client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a compassionate agricultural advisor who provides supportive, practical guidance to farmers in distress."},
+                    {"role": "user", "content": support_prompt}
+                ],
+                max_tokens=150,
+                temperature=0.7
+            )
+            
+            return response.choices[0].message.content.strip()
+            
+        except Exception as e:
+            logger.error(f"Support response generation failed: {str(e)}")
+            # Fallback response
+            return "I understand you're going through a difficult time. Please know that support is available - you can call the Kisan Call Centre at 1800-180-1551 for guidance and assistance. Many farmers face similar challenges, and there are resources to help."
+
     def _extract_crop_from_query(self, query: str) -> Optional[str]:
         """
         Extract crop name from query for LSTM price prediction

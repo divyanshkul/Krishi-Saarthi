@@ -10,6 +10,20 @@ The Misfits - Paper: https://dub.sh/TheMisfitsSynopsisMain
 
 Krishi Saarthi - Demo Video: https://dub.sh/TheMisfitsDemo
 
+## Architecture Diagram of the Main Agent:
+
+<img width="2078" height="632" alt="IMG_5985" src="https://github.com/user-attachments/assets/8e3eb5de-17d2-4259-94e1-75aff568cb50" />
+
+## Release:
+
+#### APK Download
+
+https://dub.sh/TheMisfitsAppInstallation
+
+#### App Screenshots
+
+https://dub.sh/KrishiSaarthiAppScreenshots
+
 ## Repository Structure
 
 | Folder       | Description                                                                      |

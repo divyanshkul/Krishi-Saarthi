@@ -185,11 +185,11 @@ def generate_rag_response(query: str, retrieved_schemes: List[Dict], llm) -> str
 
                 Provide a SHORT response with ONLY these sections:
 
-                **Recommended Schemes**: One line summary of the best scheme(s)
-                **Key Benefits**: One line about main financial benefits/subsidies
-                **Eligibility**: One line about who can apply
-                **How to Apply**: One line about application process
-                **Next Steps**: One line about immediate action to take
+                Recommended Schemes: One line summary of the best scheme(s)
+                Key Benefits: One line about main financial benefits/subsidies
+                Eligibility: One line about who can apply
+                How to Apply: One line about application process
+                Next Steps: One line about immediate action to take
 
                 Guidelines:
                 - Keep each section to ONE LINE only
